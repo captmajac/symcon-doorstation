@@ -109,8 +109,10 @@ class IPSModule
         }
         return $this->variables[$Ident];
     }
+    public array $positions = [];   // Ident => position (MaintainVariable)
     protected function MaintainVariable($Ident, $Name, $Type, $Profile, $Position, $Keep)
     {
+        $this->positions[$Ident] = $Position;
         if (!$Keep) {
             unset($this->variables[$Ident]);
         } elseif (!isset($this->variables[$Ident])) {
@@ -179,7 +181,7 @@ function IPS_GetChildrenIDs($ID)
 function IPS_GetObject($ID)
 {
     $o = TestRegistry::$objects[$ID];
-    return ['ObjectID' => $ID, 'ParentID' => $o['parent'], 'ObjectIdent' => $o['ident'], 'ObjectName' => $o['name'], 'ObjectType' => $o['type']];
+    return ['ObjectID' => $ID, 'ParentID' => $o['parent'], 'ObjectIdent' => $o['ident'], 'ObjectName' => $o['name'], 'ObjectType' => $o['type'], 'ObjectPosition' => $o['position'] ?? 0];
 }
 function IPS_SetParent($ID, $ParentID)
 {
@@ -189,8 +191,17 @@ function IPS_SetParent($ID, $ParentID)
     }
     return true;
 }
+function IPS_SetPosition($ID, $Position) { TestRegistry::$objects[$ID]['position'] = $Position; return true; }
 function IPS_SetIdent($ID, $Ident) { TestRegistry::$objects[$ID]['ident'] = $Ident; return true; }
 function IPS_SetName($ID, $Name) { TestRegistry::$objects[$ID]['name'] = $Name; return true; }
+
+function IPS_CreateCategory()
+{
+    $id = TestRegistry::$nextID++;
+    TestRegistry::$objects[$id] = ['parent' => 0, 'ident' => '', 'name' => 'Unnamed Object', 'type' => 0];
+    return $id;
+}
+function IPS_CategoryExists($ID) { return (TestRegistry::$objects[$ID]['type'] ?? null) === 0; }
 
 // Events
 function IPS_CreateEvent($Type)

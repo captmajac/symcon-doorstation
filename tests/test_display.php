@@ -104,13 +104,13 @@ $tests['Display: renaming the event updates HTML box and tile'] = function () {
 $tests['Display: new child event registered, removed key unknown on next read'] = function () {
     archiveReads(['c0ffee42']);
     $m = makeAccess();
-    check(in_array([2, OM_CHILDADDED], $m->messages) && in_array([2, OM_CHILDREMOVED], $m->messages), 'instance messages');
+    check(in_array([keysCat(), OM_CHILDADDED], $m->messages) && in_array([keysCat(), OM_CHILDREMOVED], $m->messages), 'category messages');
     $m->RequestAction('CreateKey', json_encode(['id' => 'c0ffee42', 'name' => 'Card']));
-    $e = IPS_GetObjectIDByIdent('key_c0ffee42', 2);
-    $m->MessageSink(TestRegistry::$now, 2, OM_CHILDADDED, [$e]);
+    $e = IPS_GetObjectIDByIdent('key_c0ffee42', keysCat());
+    $m->MessageSink(TestRegistry::$now, keysCat(), OM_CHILDADDED, [$e]);
     check(in_array([$e, OM_CHANGENAME], $m->messages), 'child not registered');
     IPS_DeleteEvent($e);
-    $m->MessageSink(TestRegistry::$now, 2, OM_CHILDREMOVED, [$e]);
+    $m->MessageSink(TestRegistry::$now, keysCat(), OM_CHILDREMOVED, [$e]);
     readLogged($m, 'c0ffee42');
     check(lastPayload($m)['recent'][0]['result'] === 'unknown', json_encode(lastPayload($m)));
 };

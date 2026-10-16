@@ -14,6 +14,10 @@ class DoorstationAccess extends IPSModule
     const STATUS_READ_NOT_STRING = 203;
     const ARCHIVE_MODULE = '{43192F0B-135B-4CE7-A0A7-1475603F3060}';
     const NAME_MAX = 40;
+    // order below the instance: access list, category with the schedules, reader status
+    const POS_RECENT = 10;
+    const POS_KEYS = 20;
+    const POS_READER = 30;
     const READER_PROFILE = 'DSA.ReaderStatus';
     const READER_VALUES = ['offline' => 0, 'degraded' => 1, 'online' => 2];
 
@@ -61,11 +65,18 @@ class DoorstationAccess extends IPSModule
             $this->RegisterMessage(0, KR_READY);
         }
 
-        $this->RegisterVariableString('Recent', $this->Translate("Accesses"), '~HTMLBox', 10);
+        $this->RegisterVariableString('Recent', $this->Translate("Accesses"), '~HTMLBox', self::POS_RECENT);
+        $keys = $this->keysCategory();
+        // schedules of earlier versions were directly below the instance
+        foreach (IPS_GetChildrenIDs($this->InstanceID) as $child) {
+            if ($this->isKeyEvent($child)) {
+                IPS_SetParent($child, $keys);
+            }
+        }
         if ($statusVar > 0) {
             $this->registerReaderProfile();
         }
-        $this->MaintainVariable('Reader', $this->Translate("Reader"), 1, self::READER_PROFILE, 20, $statusVar > 0);
+        $this->MaintainVariable('Reader', $this->Translate("Reader"), 1, self::READER_PROFILE, self::POS_READER, $statusVar > 0);
 
         $status = $this->configStatus();
         $this->SetStatus($status);
@@ -81,8 +92,8 @@ class DoorstationAccess extends IPSModule
         if ($script > 0) {
             $this->RegisterMessage($script, OM_UNREGISTER);
         }
-        $this->RegisterMessage($this->InstanceID, OM_CHILDADDED);
-        $this->RegisterMessage($this->InstanceID, OM_CHILDREMOVED);
+        $this->RegisterMessage($keys, OM_CHILDADDED);
+        $this->RegisterMessage($keys, OM_CHILDREMOVED);
         foreach ($this->keyEvents() as $event) {
             $this->watchKey($event);
         }
@@ -213,7 +224,7 @@ class DoorstationAccess extends IPSModule
         }
         IPS_SetEventActive($event, true);
         // attach only when complete: the tile visualization seems to keep a schedule that was empty when it appeared
-        IPS_SetParent($event, $this->InstanceID);
+        IPS_SetParent($event, $this->keysCategory());
         IPS_SetIdent($event, 'key_' . $id);
         // OM_CHILDADDED may arrive before the ident is set
         $this->watchKey($event);
@@ -311,7 +322,7 @@ class DoorstationAccess extends IPSModule
     // Weekly schedule event of a key, 0 if unknown
     private function keyEvent(string $id): int
     {
-        $event = @IPS_GetObjectIDByIdent('key_' . $id, $this->InstanceID);
+        $event = @IPS_GetObjectIDByIdent('key_' . $id, $this->keysCategory());
         return $event !== false && IPS_EventExists($event) ? $event : 0;
     }
 
@@ -323,7 +334,22 @@ class DoorstationAccess extends IPSModule
     // Weekly schedule events of all keys
     private function keyEvents(): array
     {
-        return array_values(array_filter(IPS_GetChildrenIDs($this->InstanceID), fn ($id) => $this->isKeyEvent($id)));
+        return array_values(array_filter(IPS_GetChildrenIDs($this->keysCategory()), fn ($id) => $this->isKeyEvent($id)));
+    }
+
+    // Category "Keys" below the instance holding the schedules, created if missing
+    private function keysCategory(): int
+    {
+        $id = @IPS_GetObjectIDByIdent('Keys', $this->InstanceID);
+        if ($id !== false && IPS_CategoryExists($id)) {
+            return $id;
+        }
+        $id = IPS_CreateCategory();
+        IPS_SetName($id, $this->Translate("Keys"));
+        IPS_SetPosition($id, self::POS_KEYS);
+        IPS_SetParent($id, $this->InstanceID);
+        IPS_SetIdent($id, 'Keys');
+        return $id;
     }
 
     private function watchKey(int $event): void

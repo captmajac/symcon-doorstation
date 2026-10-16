@@ -23,11 +23,23 @@ function makeAccess(array $props = []): TestAccess
     return $m;
 }
 
-// Key event under instance 2; default: access all week
-function addKey(string $id, string $name, bool $active = true, ?array $groups = null): int
+// Category "Keys" below instance 2 (created like the module does)
+function keysCat(): int
+{
+    $cat = IPS_GetObjectIDByIdent('Keys', 2);
+    if ($cat === false) {
+        $cat = IPS_CreateCategory();
+        IPS_SetParent($cat, 2);
+        IPS_SetIdent($cat, 'Keys');
+    }
+    return $cat;
+}
+
+// Key event in category Keys; default: access all week
+function addKey(string $id, string $name, bool $active = true, ?array $groups = null, ?int $parent = null): int
 {
     $e = IPS_CreateEvent(2);
-    IPS_SetParent($e, 2);
+    IPS_SetParent($e, $parent ?? keysCat());
     IPS_SetIdent($e, "key_$id");
     IPS_SetName($e, $name);
     IPS_SetEventActive($e, $active);

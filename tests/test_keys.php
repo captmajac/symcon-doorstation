@@ -6,7 +6,7 @@ $tests['Keys: CreateKey for archived ID creates the weekly schedule'] = function
     archiveReads(['c0ffee42']);
     $m = makeAccess();
     $m->RequestAction('CreateKey', json_encode(['id' => 'C0FFEE42', 'name' => 'Card garden']));
-    $e = IPS_GetObjectIDByIdent('key_c0ffee42', 2);
+    $e = IPS_GetObjectIDByIdent('key_c0ffee42', keysCat());
     check($e !== false, 'no event');
     check(IPS_GetObject($e)['ObjectName'] === 'Card garden', 'name');
     $ev = IPS_GetEvent($e);
@@ -21,9 +21,24 @@ $tests['Keys: schedule is complete before it appears under the instance (visuali
     archiveReads(['c0ffee42']);
     $m = makeAccess();
     $m->RequestAction('CreateKey', json_encode(['id' => 'c0ffee42', 'name' => 'Card']));
-    $e = IPS_GetObjectIDByIdent('key_c0ffee42', 2);
+    $e = IPS_GetObjectIDByIdent('key_c0ffee42', keysCat());
     $atParent = TestRegistry::$parented[$e] ?? [];
     check(count($atParent['ScheduleGroups'] ?? []) === 7 && count($atParent['ScheduleActions'] ?? []) === 2 && ($atParent['EventActive'] ?? false), json_encode($atParent));
+};
+
+$tests['Keys: category Keys below access list, reader last; old schedules moved in'] = function () {
+    archiveReads(['c0ffee42']);
+    $old = addKey('0d15ea5e', 'Old', true, null, 2);  // created by an earlier version directly below the instance
+    $m = makeAccess(['StatusVariable' => 101]);
+    $cat = IPS_GetObjectIDByIdent('Keys', 2);
+    check($cat !== false && IPS_CategoryExists($cat), 'no category');
+    check(IPS_GetObject($cat)['ObjectName'] === 'Keys', 'name');
+    check(IPS_GetObject($old)['ParentID'] === $cat, 'old schedule not moved');
+    check(IPS_GetObject($cat)['ObjectPosition'] > 10 && IPS_GetObject($cat)['ObjectPosition'] < $m->positions['Reader'], 'order');
+    $m->ApplyChanges();
+    check(count(array_filter(IPS_GetChildrenIDs(2), 'IPS_CategoryExists')) === 1, 'second category');
+    $m->RequestAction('CreateKey', json_encode(['id' => 'c0ffee42', 'name' => 'Card']));
+    check(IPS_GetObject(IPS_GetObjectIDByIdent('key_c0ffee42', $cat))['ParentID'] === $cat, 'new key not in category');
 };
 
 $tests['Keys: created key opens on next read'] = function () {
@@ -38,7 +53,7 @@ $tests['Keys: CreateKey for ID outside the last 5 reads is refused'] = function 
     archiveReads(['11111111', '22222222', '33333333', '44444444', '55555555', 'c0ffee42']);
     $m = makeAccess();
     $m->RequestAction('CreateKey', json_encode(['id' => 'c0ffee42', 'name' => 'Card']));
-    check(IPS_GetObjectIDByIdent('key_c0ffee42', 2) === false, 'created');
+    check(IPS_GetObjectIDByIdent('key_c0ffee42', keysCat()) === false, 'created');
     check(lastError($m) === 'Key not in recent reads', (string) lastError($m));
 };
 
@@ -59,9 +74,9 @@ $tests['Keys: name blank or 41 characters refused, surrounding spaces trimmed'] 
     $m->RequestAction('CreateKey', json_encode(['id' => 'c0ffee42', 'name' => str_repeat('ä', 41)]));
     check(lastError($m) === 'Name must be 1 to 40 characters', '41: ' . lastError($m));
     $m->RequestAction('CreateKey', json_encode(['id' => 'c0ffee42', 'name' => str_repeat('ä', 40)]));
-    check(IPS_GetObjectIDByIdent('key_c0ffee42', 2) !== false, '40 multibyte refused');
+    check(IPS_GetObjectIDByIdent('key_c0ffee42', keysCat()) !== false, '40 multibyte refused');
     $m->RequestAction('RenameKey', json_encode(['id' => 'c0ffee42', 'name' => '  Alex  ']));
-    check(IPS_GetObject(IPS_GetObjectIDByIdent('key_c0ffee42', 2))['ObjectName'] === 'Alex', 'not trimmed');
+    check(IPS_GetObject(IPS_GetObjectIDByIdent('key_c0ffee42', keysCat()))['ObjectName'] === 'Alex', 'not trimmed');
 };
 
 $tests['Keys: RenameKey, SetKeyActive and DeleteKey act on the event'] = function () {

@@ -15,7 +15,7 @@ $tests['Review: created key is watched without waiting for OM_CHILDADDED'] = fun
     archiveReads(['c0ffee42']);
     $m = makeAccess();
     $m->RequestAction('CreateKey', json_encode(['id' => 'c0ffee42', 'name' => 'Card']));
-    $e = IPS_GetObjectIDByIdent('key_c0ffee42', 2);
+    $e = IPS_GetObjectIDByIdent('key_c0ffee42', keysCat());
     check(in_array([$e, OM_CHANGENAME], $m->messages) && in_array([$e, EM_CHANGEACTIVE], $m->messages), json_encode($m->messages));
 };
 

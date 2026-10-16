@@ -6,7 +6,7 @@ IP-Symcon modules for the [doorstation](https://github.com/captmajac/doorstation
 
 Decides on access for RFID cards, AirTags and Apple Home Key reported by the doorstation service `rfid`, starts your door opener script (optional) and shows the last accesses.
 
-- Every key is a **weekly schedule** below the instance: the schedule name is the display name, action 1 is *Access*, action 2 *Locked*. An inactive schedule locks the key.
+- Every key is a **weekly schedule** in the category *Keys* below the instance (one group per weekday): the schedule name is the display name, action 1 is *Access*, action 2 *Locked*. An inactive schedule locks the key.
 - Unknown keys appear in the list. Give them a name in the tile and they are unlocked (all week, restrict the schedule as you like).
 - The last 5 accesses come from the **archive** of the read variable: green = access, red = denied (unknown, inactive, outside schedule, too old).
 
@@ -58,7 +58,7 @@ IPS_LogMessage('Door', 'Opening for ' . $_IPS['KEY_NAME']);
 
 ### Old WebFront
 
-The variable *Accesses* is an HTML box with the last accesses. The variable *Reader* (Offline / Degraded / Online) exists only when a status variable is selected. The schedules below the instance can be edited there as usual; naming new keys works in the tile.
+Below the instance, in this order: *Accesses* (HTML box with the last accesses), the category *Keys* with the schedules, and *Reader* (Offline / Degraded / Online, only when a status variable is selected). The schedules can be edited there as usual; naming new keys works in the tile.
 
 ## Development
 

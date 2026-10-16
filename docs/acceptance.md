@@ -3,7 +3,7 @@
 Vorbereitung: Bibliothek installieren, Instanz *Doorstation Access* anlegen, Lesevariable (`doorstation/rfid/read`), Statusvariable und (optional) Türöffner-Skript wählen, Archivierung der Lesevariable einschalten. Kachel auf einem Tablet und das alte WebFront auf dem Laptop öffnen.
 
 - [ ] 1. Unbekannte Karte vorhalten → rot „unbekannt“, Tür bleibt zu, Meldung „Unbekannter Schlüssel …“ im Log.
-- [ ] 2. In der Kachel „+“, Namen eingeben, „Anlegen“ → Wochenplan unter der Instanz; nächstes Vorhalten grün, Türöffner-Skript läuft (`KEY_NAME` im Skript prüfen).
+- [ ] 2. In der Kachel „+“, Namen eingeben, „Anlegen“ → Wochenplan in der Kategorie „Schlüssel“ unter der Instanz (eine Gruppe je Wochentag); nächstes Vorhalten grün, Türöffner-Skript läuft (`KEY_NAME` im Skript prüfen).
 - [ ] 3. Wochenplan einschränken (z. B. jetzt „Gesperrt“) → beim Vorhalten rot „außerhalb Wochenplan“.
 - [ ] 4. „Schlüssel verwalten“: deaktivieren → rot „inaktiv“; löschen → wieder „unbekannt“.
 - [ ] 5. Wochenplan in der Konsole umbenennen → Name sofort in Kachel und HTML-Box.
@@ -14,3 +14,4 @@ Vorbereitung: Bibliothek installieren, Instanz *Doorstation Access* anlegen, Les
 - [ ] 10. ⏱ in der Kachel öffnet den Wochenplan (`openObject`), Bearbeiten dort möglich.
 - [ ] 11. Statusvariable auf `degraded` → Punkt gelb, Variable „Leser“ unter der Instanz „Gestört“ (gelb); HTML-Box ohne Leserstatus.
 - [ ] 12. Ohne Türöffner-Skript: Instanz aktiv, bekannte Karte grün, Meldung „Zutritt für …, kein Türöffner-Skript gewählt“ im Log.
+- [ ] 13. Altes WebFront: Reihenfolge „Zugriffe“, „Schlüssel“, „Leser“; Zeilen grün/rot; Wochenpläne aus einer älteren Version sind in „Schlüssel“ umgezogen.
