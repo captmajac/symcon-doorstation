@@ -17,6 +17,15 @@ $tests['Keys: CreateKey for archived ID creates the weekly schedule'] = function
     check(lastError($m) === null, lastError($m) ?? '');
 };
 
+$tests['Keys: schedule is complete before it appears under the instance (visualization shows it at once)'] = function () {
+    archiveReads(['c0ffee42']);
+    $m = makeAccess();
+    $m->RequestAction('CreateKey', json_encode(['id' => 'c0ffee42', 'name' => 'Card']));
+    $e = IPS_GetObjectIDByIdent('key_c0ffee42', 2);
+    $atParent = TestRegistry::$parented[$e] ?? [];
+    check(count($atParent['ScheduleGroups'] ?? []) === 7 && count($atParent['ScheduleActions'] ?? []) === 2 && ($atParent['EventActive'] ?? false), json_encode($atParent));
+};
+
 $tests['Keys: created key opens on next read'] = function () {
     archiveReads(['c0ffee42']);
     $m = makeAccess();

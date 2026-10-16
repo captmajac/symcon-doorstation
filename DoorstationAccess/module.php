@@ -204,8 +204,6 @@ class DoorstationAccess extends IPSModule
     private function createKeyEvent(string $id, string $name): void
     {
         $event = IPS_CreateEvent(2);
-        IPS_SetParent($event, $this->InstanceID);
-        IPS_SetIdent($event, 'key_' . $id);
         IPS_SetName($event, $name);
         IPS_SetEventScheduleAction($event, 1, $this->Translate("Access"), 0x2E7D32, '');
         IPS_SetEventScheduleAction($event, 2, $this->Translate("Locked"), 0xC62828, '');
@@ -214,6 +212,9 @@ class DoorstationAccess extends IPSModule
             IPS_SetEventScheduleGroupPoint($event, $day, 0, 0, 0, 0, 1);
         }
         IPS_SetEventActive($event, true);
+        // attach only when complete: the tile visualization seems to keep a schedule that was empty when it appeared
+        IPS_SetParent($event, $this->InstanceID);
+        IPS_SetIdent($event, 'key_' . $id);
         // OM_CHILDADDED may arrive before the ident is set
         $this->watchKey($event);
     }
@@ -393,14 +394,18 @@ class DoorstationAccess extends IPSModule
         $html = '<table>';
         foreach ($payload['recent'] as $entry) {
             $name = $entry['name'] ?? sprintf($this->Translate("Unknown (%s)"), $entry['id']);
-            $cells = '<td>' . date('d.m.Y H:i', $entry['time']) . '</td><td>' . htmlspecialchars($name) . '</td>';
-            if ($entry['result'] === null) {
+            // color on each cell, the WebFront styles td itself
+            $td = match (true) {
+                $entry['result'] === null      => '<td>',
+                $entry['result'] === 'allowed' => '<td style="color:#2E7D32">',
+                default                        => '<td style="color:#C62828">',
+            };
+            $cells = $td . date('d.m.Y H:i', $entry['time']) . '</td>' . $td . htmlspecialchars($name) . '</td>';
+            if ($entry['result'] === null || $entry['result'] === 'allowed') {
                 $html .= "<tr>$cells</tr>";
-            } elseif ($entry['result'] === 'allowed') {
-                $html .= "<tr style=\"color:#2E7D32\">$cells</tr>";
             } else {
                 $title = htmlspecialchars($hints[$entry['result']] ?? $entry['result']);
-                $html .= "<tr style=\"color:#C62828\" title=\"$title\">$cells</tr>";
+                $html .= "<tr title=\"$title\">$cells</tr>";
             }
         }
         return $html . '</table>';

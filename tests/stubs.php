@@ -19,7 +19,8 @@ class TestRegistry
     public static array $logging = [];    // VariableID => bool
     public static ?int $archiveID = null;
     public static bool $semaphoreFree = true;
-    public static array $profiles = [];   // name => ['type', 'icon', 'associations' => [value => [name, icon, color]]]
+    public static array $profiles = [];
+    public static array $parented = [];   // event ID => IPS_GetEvent array at the moment of IPS_SetParent   // name => ['type', 'icon', 'associations' => [value => [name, icon, color]]]
 
     public static function reset(): void
     {
@@ -38,6 +39,7 @@ class TestRegistry
         self::$archiveID = null;
         self::$semaphoreFree = true;
         self::$profiles = [];
+        self::$parented = [];
     }
 }
 
@@ -179,7 +181,14 @@ function IPS_GetObject($ID)
     $o = TestRegistry::$objects[$ID];
     return ['ObjectID' => $ID, 'ParentID' => $o['parent'], 'ObjectIdent' => $o['ident'], 'ObjectName' => $o['name'], 'ObjectType' => $o['type']];
 }
-function IPS_SetParent($ID, $ParentID) { TestRegistry::$objects[$ID]['parent'] = $ParentID; return true; }
+function IPS_SetParent($ID, $ParentID)
+{
+    TestRegistry::$objects[$ID]['parent'] = $ParentID;
+    if (isset(TestRegistry::$events[$ID])) {
+        TestRegistry::$parented[$ID] = TestRegistry::$events[$ID];
+    }
+    return true;
+}
 function IPS_SetIdent($ID, $Ident) { TestRegistry::$objects[$ID]['ident'] = $Ident; return true; }
 function IPS_SetName($ID, $Name) { TestRegistry::$objects[$ID]['name'] = $Name; return true; }
 
