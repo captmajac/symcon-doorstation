@@ -200,7 +200,7 @@ class DoorstationAccess extends IPSModule
         return $this->Translate("Invalid key");
     }
 
-    // Weekly schedule: action 1 access, 2 locked; all week access from 00:00
+    // Weekly schedule: action 1 access, 2 locked; one group per weekday (Mon = 1 … Sun = 64), access from 00:00
     private function createKeyEvent(string $id, string $name): void
     {
         $event = IPS_CreateEvent(2);
@@ -209,8 +209,10 @@ class DoorstationAccess extends IPSModule
         IPS_SetName($event, $name);
         IPS_SetEventScheduleAction($event, 1, $this->Translate("Access"), 0x2E7D32, '');
         IPS_SetEventScheduleAction($event, 2, $this->Translate("Locked"), 0xC62828, '');
-        IPS_SetEventScheduleGroup($event, 0, 127);
-        IPS_SetEventScheduleGroupPoint($event, 0, 0, 0, 0, 0, 1);
+        for ($day = 0; $day < 7; $day++) {
+            IPS_SetEventScheduleGroup($event, $day, 1 << $day);
+            IPS_SetEventScheduleGroupPoint($event, $day, 0, 0, 0, 0, 1);
+        }
         IPS_SetEventActive($event, true);
         // OM_CHILDADDED may arrive before the ident is set
         $this->watchKey($event);

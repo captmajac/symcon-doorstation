@@ -12,7 +12,8 @@ $tests['Keys: CreateKey for archived ID creates the weekly schedule'] = function
     $ev = IPS_GetEvent($e);
     check($ev['EventType'] === 2 && $ev['EventActive'] === true, 'type/active');
     check($ev['ScheduleActions'] === [['ID' => 1, 'Name' => 'Access', 'Color' => 0x2E7D32], ['ID' => 2, 'Name' => 'Locked', 'Color' => 0xC62828]], json_encode($ev['ScheduleActions']));
-    check(array_values($ev['ScheduleGroups']) === [['ID' => 0, 'Days' => 127, 'Points' => [['ID' => 0, 'Start' => ['Hour' => 0, 'Minute' => 0, 'Second' => 0], 'ActionID' => 1]]]], json_encode($ev['ScheduleGroups']));
+    $day = fn ($i) => ['ID' => $i, 'Days' => 1 << $i, 'Points' => [['ID' => 0, 'Start' => ['Hour' => 0, 'Minute' => 0, 'Second' => 0], 'ActionID' => 1]]];
+    check(array_values($ev['ScheduleGroups']) === array_map($day, range(0, 6)), json_encode($ev['ScheduleGroups']));
     check(lastError($m) === null, lastError($m) ?? '');
 };
 
