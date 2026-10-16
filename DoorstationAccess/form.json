@@ -1,0 +1,13 @@
+{
+    "elements": [
+        { "type": "SelectVariable", "name": "ReadVariable", "caption": "Read variable (doorstation/rfid/read)" },
+        { "type": "SelectVariable", "name": "StatusVariable", "caption": "Status variable (doorstation/rfid/status, optional)" },
+        { "type": "SelectScript", "name": "DoorScript", "caption": "Door opener script" }
+    ],
+    "actions": [],
+    "status": [
+        { "code": 201, "icon": "error", "caption": "Read variable missing" },
+        { "code": 202, "icon": "error", "caption": "Door script missing" },
+        { "code": 203, "icon": "error", "caption": "Read variable is not a string" }
+    ]
+}

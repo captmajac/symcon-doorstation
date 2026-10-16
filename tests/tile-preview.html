@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tile preview</title>
+<style>
+    body { margin: 0; font-family: -apple-system, sans-serif; background: #1b2531; color: #e8eef5; }
+    body.light { background: #f3f5f7; color: #1b2531; }
+    #log { font: 12px monospace; padding: 8px; opacity: 0.8; white-space: pre-wrap; }
+    #tile { height: 340px; margin: 8px; border: 1px solid #556; border-radius: 10px; }
+    #bar { padding: 8px; display: flex; gap: 8px; }
+</style>
+</head>
+<body>
+<!-- Local preview of DoorstationAccess/module.html with SDK stubs.
+     Serve the repo root: ../tools/php/php -S 127.0.0.1:8765 and open /tests/tile-preview.html -->
+<div id="bar">
+    <button onclick="document.body.classList.toggle('light')">hell/dunkel</button>
+    <button onclick="document.getElementById('tile').style.height = document.getElementById('tile').style.height === '120px' ? '340px' : '120px'">klein/groß</button>
+    <button onclick="handleMessage(JSON.stringify(Object.assign({}, sample, {archive_ok: false, recent: []})))">Archiv aus</button>
+    <button onclick="handleMessage(JSON.stringify(sample))">Daten</button>
+</div>
+<div id="tile"></div>
+<div id="log"></div>
+<script>
+    const log = (text) => { document.getElementById('log').textContent += text + '\n'; };
+    let de = {};
+    window.translate = (text) => de[text] || text;
+    window.requestAction = (ident, value) => {
+        log('requestAction(' + ident + ', ' + value + ')');
+        if (ident === 'CreateKey' && JSON.parse(value).name.trim() === '') {
+            handleMessage(JSON.stringify({ error: 'Der Name muss 1 bis 40 Zeichen lang sein' }));
+        }
+    };
+    window.openObject = (id) => log('openObject(' + id + ')');
+    const now = Math.floor(Date.now() / 1000);
+    const sample = {
+        status: 'online',
+        archive_ok: true,
+        recent: [
+            { time: now - 60, id: '1a2b3c4d5e6f7a8b', name: 'Alex iPhone', type: 'homekey', result: 'allowed' },
+            { time: now - 3600, id: '04f0e1d2c3b4a5', name: null, type: 'card', result: 'unknown' },
+            { time: now - 7200, id: 'c0ffee42', name: 'Karte Garten <b>x</b>', type: 'card', result: 'outside_schedule' },
+            { time: now - 90000, id: '1a2b3c4d5e6f7a8b', name: 'Alex iPhone', type: 'homekey', result: 'allowed' },
+            { time: now - 99000, id: '0d15ea5e', name: 'Gast Handwerker', type: 'card', result: null },
+        ],
+        keys: [
+            { id: '1a2b3c4d5e6f7a8b', name: 'Alex iPhone', event: 12001, active: true, allowed_now: true },
+            { id: 'c0ffee42', name: 'Karte Garten <b>x</b>', event: 12002, active: true, allowed_now: false },
+            { id: '0d15ea5e', name: 'Gast Handwerker', event: 12003, active: false, allowed_now: false },
+        ],
+    };
+    Promise.all([fetch('../DoorstationAccess/module.html').then((r) => r.text()), fetch('../DoorstationAccess/locale.json').then((r) => r.json())])
+        .then(([html, locale]) => {
+            de = locale.translations.de;
+            const tile = document.getElementById('tile');
+            tile.innerHTML = html;
+            tile.querySelectorAll('script').forEach((old) => {
+                const s = document.createElement('script');
+                s.textContent = old.textContent;
+                old.replaceWith(s);
+            });
+            handleMessage(JSON.stringify(sample));
+        });
+</script>
+</body>
+</html>

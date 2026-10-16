@@ -1,0 +1,12 @@
+{
+    "id": "{15F05AA9-D9FE-4959-9108-4EF9678C5854}",
+    "name": "Doorstation",
+    "author": "captmajac",
+    "url": "https://github.com/captmajac/symcon-doorstation",
+    "compatibility": {
+        "version": "9.0"
+    },
+    "version": "1.0",
+    "build": 0,
+    "date": 0
+}

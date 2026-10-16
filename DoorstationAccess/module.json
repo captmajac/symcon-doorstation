@@ -1,0 +1,13 @@
+{
+    "id": "{585BD3E2-D1DE-4F8B-A666-836B6762D987}",
+    "name": "DoorstationAccess",
+    "type": 3,
+    "vendor": "Doorstation",
+    "aliases": [
+        "Doorstation Access"
+    ],
+    "parentRequirements": [],
+    "childRequirements": [],
+    "implemented": [],
+    "prefix": "DSA"
+}

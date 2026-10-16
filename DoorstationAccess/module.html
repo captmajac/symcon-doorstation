@@ -1,0 +1,208 @@
+<script src="/icons.js"></script>
+<style>
+    #dsa { font-family: inherit; color: inherit; height: 100%; box-sizing: border-box; padding: 8px 12px; overflow: auto; }
+    #dsa .head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    #dsa .title { font-weight: 600; flex: 1; }
+    #dsa .dot { width: 10px; height: 10px; border-radius: 50%; display: none; }
+    #dsa .dot.online { display: inline-block; background: #43A047; }
+    #dsa .dot.degraded { display: inline-block; background: #FDD835; }
+    #dsa .dot.offline { display: inline-block; background: #E53935; }
+    #dsa button { font: inherit; color: inherit; background: transparent; border: 1px solid rgba(127, 127, 127, 0.5); border-radius: 6px; padding: 2px 8px; cursor: pointer; }
+    #dsa input[type=text] { font: inherit; color: inherit; background: transparent; border: 1px solid rgba(127, 127, 127, 0.6); border-radius: 6px; padding: 2px 6px; min-width: 0; flex: 1; }
+    #dsa .row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid rgba(127, 127, 127, 0.25); }
+    #dsa .row .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #dsa .row .time { opacity: 0.75; white-space: nowrap; }
+    #dsa .last { font-size: 1.4em; border-top: none; }
+    #dsa .allowed { color: #43A047; }
+    #dsa .denied { color: #E53935; }
+    #dsa .hint, #dsa .error { padding: 6px 0; }
+    #dsa .error { color: #E53935; }
+    #dsa .id { opacity: 0.6; font-size: 0.85em; }
+    body.small #dsa .older, body.small #dsa #toggle { display: none; }
+</style>
+
+<div id="dsa">
+    <div class="head">
+        <span class="dot" id="dot"></span>
+        <span class="title" id="title"></span>
+        <button id="toggle" type="button"></button>
+    </div>
+    <div class="error" id="error" hidden></div>
+    <div class="hint" id="hint" hidden></div>
+    <div id="recent"></div>
+    <div id="manage" hidden></div>
+</div>
+
+<script>
+    if (typeof translate !== 'function') { window.translate = (text) => text; }
+
+    let state = null;
+    let manage = false;
+    let editing = null;  // id of the key whose name is being entered
+    let errorTimer = null;
+
+    const hints = {
+        unknown: translate('unknown'),
+        inactive: translate('inactive'),
+        outside_schedule: translate('outside schedule'),
+        stale: translate('discarded (too old)'),
+    };
+
+    function el(tag, className, text) {
+        const node = document.createElement(tag);
+        if (className) node.className = className;
+        if (text !== undefined) node.textContent = text;
+        return node;
+    }
+
+    function button(label, onClick, iconClass) {
+        const b = el('button');
+        b.type = 'button';
+        if (iconClass) {
+            b.appendChild(el('i', iconClass));
+            b.title = label;
+        } else {
+            b.textContent = label;
+        }
+        b.addEventListener('click', onClick);
+        return b;
+    }
+
+    function formatTime(seconds) {
+        const d = new Date(seconds * 1000);
+        const hm = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+        if (d.toDateString() === new Date().toDateString()) return translate('Today') + ' ' + hm;
+        return String(d.getDate()).padStart(2, '0') + '.' + String(d.getMonth() + 1).padStart(2, '0') + '. ' + hm;
+    }
+
+    function keyById(id) {
+        return state.keys.find((k) => k.id === id) || null;
+    }
+
+    function nameInput(id, initial, action) {
+        const input = el('input');
+        input.type = 'text';
+        input.maxLength = 40;
+        input.value = initial;
+        input.placeholder = translate('Name');
+        const save = () => {
+            const value = JSON.stringify({ id: id, name: input.value });
+            if (action === 'CreateKey') requestAction('CreateKey', value);
+            else requestAction('RenameKey', value);
+        };
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') save();
+            if (e.key === 'Escape') { editing = null; render(); }
+        });
+        setTimeout(() => input.focus(), 0);
+        return [input, button(action === 'CreateKey' ? translate('Create') : translate('Save'), save)];
+    }
+
+    function recentRow(entry, index) {
+        const row = el('div', 'row' + (index === 0 ? ' last' : ' older'));
+        if (entry.result === 'allowed') {
+            row.classList.add('allowed');
+        } else if (entry.result !== null) {
+            row.classList.add('denied');
+            row.title = hints[entry.result] || entry.result;
+        }
+
+        row.appendChild(el('i', entry.type === 'homekey' ? 'fa-light fa-mobile' : 'fa-light fa-id-card'));
+        if (editing === entry.id && entry.name === null) {
+            nameInput(entry.id, '', 'CreateKey').forEach((n) => row.appendChild(n));
+            return row;
+        }
+        const name = el('span', 'name', entry.name !== null ? entry.name : translate('Unknown') + ' ');
+        if (entry.name === null) name.appendChild(el('span', 'id', entry.id));
+        row.appendChild(name);
+        row.appendChild(el('span', 'time', formatTime(entry.time)));
+
+        const key = keyById(entry.id);
+        if (key) {
+            row.appendChild(button(translate('Schedule'), () => openObject(key.event), 'fa-light fa-clock'));
+        } else {
+            row.appendChild(button(translate('Name key'), () => { editing = entry.id; render(); }, 'fa-light fa-plus'));
+        }
+        return row;
+    }
+
+    function keyRow(key) {
+        const row = el('div', 'row' + (key.allowed_now ? ' allowed' : ' denied'));
+        if (editing === key.id) {
+            nameInput(key.id, key.name, 'RenameKey').forEach((n) => row.appendChild(n));
+            return row;
+        }
+        const name = el('span', 'name', key.name + ' ');
+        name.appendChild(el('span', 'id', key.id.length > 16 ? key.id.slice(0, 16) + '…' : key.id));
+        name.title = key.allowed_now ? translate('Access now') : translate('Locked now');
+        row.appendChild(name);
+
+        const active = el('input');
+        active.type = 'checkbox';
+        active.checked = key.active;
+        active.title = translate('Active');
+        active.addEventListener('change', () => requestAction('SetKeyActive', JSON.stringify({ id: key.id, active: active.checked })));
+        row.appendChild(active);
+        row.appendChild(button(translate('Rename'), () => { editing = key.id; render(); }, 'fa-light fa-pen'));
+        row.appendChild(button(translate('Schedule'), () => openObject(key.event), 'fa-light fa-clock'));
+        row.appendChild(button(translate('Delete'), () => {
+            if (confirm(translate('Delete key?') + ' ' + key.name)) {
+                requestAction('DeleteKey', JSON.stringify({ id: key.id }));
+            }
+        }, 'fa-light fa-trash'));
+        return row;
+    }
+
+    function render() {
+        if (!state) return;
+        document.getElementById('title').textContent = translate('Entry');
+        const dot = document.getElementById('dot');
+        dot.className = 'dot' + (state.status ? ' ' + state.status : '');
+        dot.title = state.status ? translate('Reader') + ': ' + state.status : '';
+        document.getElementById('toggle').textContent = manage ? translate('Back') : translate('Manage keys');
+
+        const hint = document.getElementById('hint');
+        hint.hidden = state.archive_ok || manage;
+        hint.textContent = translate('Enable archiving of the read variable');
+
+        const recent = document.getElementById('recent');
+        recent.innerHTML = '';
+        recent.hidden = manage;
+        if (!manage && state.archive_ok) {
+            state.recent.forEach((entry, i) => recent.appendChild(recentRow(entry, i)));
+        }
+
+        const list = document.getElementById('manage');
+        list.innerHTML = '';
+        list.hidden = !manage;
+        if (manage) {
+            if (state.keys.length === 0) list.appendChild(el('div', 'hint', translate('No keys yet')));
+            [...state.keys].sort((a, b) => a.name.localeCompare(b.name)).forEach((key) => list.appendChild(keyRow(key)));
+        }
+    }
+
+    function showError(text) {
+        const box = document.getElementById('error');
+        box.textContent = text;
+        box.hidden = false;
+        clearTimeout(errorTimer);
+        errorTimer = setTimeout(() => { box.hidden = true; }, 5000);
+    }
+
+    function handleMessage(data) {
+        const message = typeof data === 'string' ? JSON.parse(data) : data;
+        if (message.error) {
+            showError(message.error);
+            return;
+        }
+        state = message;
+        editing = null;
+        render();
+    }
+
+    document.getElementById('toggle').addEventListener('click', () => { manage = !manage; editing = null; render(); });
+
+    if (typeof ResizeObserver === 'function') {
+        new ResizeObserver(() => document.body.classList.toggle('small', document.body.clientHeight < 160)).observe(document.body);
+    }
+</script>
