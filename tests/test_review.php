@@ -12,10 +12,10 @@ $tests['Review: read uses the value from the message, not the current variable v
 };
 
 $tests['Review: created key is watched without waiting for OM_CHILDADDED'] = function () {
-    archiveReads(['c0ffee42']);
     $m = makeAccess();
+    readsOf($m, ['c0ffee42']);
     $m->RequestAction('CreateKey', json_encode(['id' => 'c0ffee42', 'name' => 'Card']));
-    $e = IPS_GetObjectIDByIdent('key_c0ffee42', keysCat());
+    $e = IPS_GetObjectIDByIdent('key_c0ffee42', 2);
     check(in_array([$e, OM_CHANGENAME], $m->messages) && in_array([$e, EM_CHANGEACTIVE], $m->messages), json_encode($m->messages));
 };
 
@@ -37,10 +37,8 @@ $tests['Review: busy semaphore drops the read with a log entry'] = function () {
     check(in_array('Read dropped: c0ffee42, instance busy', TestRegistry::$log), json_encode(TestRegistry::$log));
 };
 
-$tests['Review: no archive access before the kernel is ready'] = function () {
+$tests['Review: no refresh before the kernel is ready'] = function () {
     TestRegistry::$runlevel = 10102;  // KR_INIT
-    TestRegistry::$archiveID = 50;
-    TestRegistry::$logging[100] = true;
     $m = makeAccess();
     check($m->visu === [], 'refreshed during startup');
     check(in_array([100, VM_UPDATE], $m->messages), 'VM_UPDATE missing');

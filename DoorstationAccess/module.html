@@ -8,6 +8,7 @@
     #dsa .dot.degraded { display: inline-block; background: #FDD835; }
     #dsa .dot.offline { display: inline-block; background: #E53935; }
     #dsa button { font: inherit; color: inherit; background: transparent; border: 1px solid rgba(127, 127, 127, 0.5); border-radius: 6px; padding: 2px 8px; cursor: pointer; }
+    #dsa button.icon { width: 2.4em; padding: 2px 0; text-align: center; flex: none; }
     #dsa input[type=text] { font: inherit; color: inherit; background: transparent; border: 1px solid rgba(127, 127, 127, 0.6); border-radius: 6px; padding: 2px 6px; min-width: 0; flex: 1; }
     #dsa .row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid rgba(127, 127, 127, 0.25); }
     #dsa .row .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -24,10 +25,9 @@
     <div class="head">
         <span class="dot" id="dot"></span>
         <span class="title" id="title"></span>
-        <button id="toggle" type="button"></button>
+        <button id="toggle" class="icon" type="button"><i id="toggleIcon"></i></button>
     </div>
     <div class="error" id="error" hidden></div>
-    <div class="hint" id="hint" hidden></div>
     <div id="recent"></div>
     <div id="manage" hidden></div>
 </div>
@@ -58,6 +58,7 @@
         const b = el('button');
         b.type = 'button';
         if (iconClass) {
+            b.classList.add('icon');
             b.appendChild(el('i', iconClass));
             b.title = label;
         } else {
@@ -157,16 +158,13 @@
         const dot = document.getElementById('dot');
         dot.className = 'dot' + (state.status ? ' ' + state.status : '');
         dot.title = state.status ? translate('Reader') + ': ' + state.status : '';
-        document.getElementById('toggle').textContent = manage ? translate('Back') : translate('Manage keys');
-
-        const hint = document.getElementById('hint');
-        hint.hidden = state.archive_ok || manage;
-        hint.textContent = translate('Enable archiving of the read variable');
+        document.getElementById('toggle').title = manage ? translate('Back') : translate('Manage keys');
+        document.getElementById('toggleIcon').className = manage ? 'fa-light fa-arrow-left' : 'fa-light fa-gear';
 
         const recent = document.getElementById('recent');
         recent.innerHTML = '';
         recent.hidden = manage;
-        if (!manage && state.archive_ok) {
+        if (!manage) {
             state.recent.forEach((entry, i) => recent.appendChild(recentRow(entry, i)));
         }
 

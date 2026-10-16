@@ -2,33 +2,24 @@
 
 declare(strict_types=1);
 
-// Last accesses from archived values of the read variable.
+// Last accesses for display, from the decision log.
 class RecentList
 {
-    // $rows: archive rows ['TimeStamp','Value'], newest first; $current: current value of the variable (may be
-    // newer than the archive, which writes buffered); $nameOf(string $id): ?string
+    // $nameOf(string $id): ?string
     // Returns [['time','id','name','type','result']], newest first.
-    public static function build(array $rows, ?array $current, callable $nameOf, DecisionLog $log, int $limit = 5): array
+    public static function build(DecisionLog $log, callable $nameOf, int $limit = 5): array
     {
-        if ($current !== null && ($rows === [] || ($current['TimeStamp'] > $rows[0]['TimeStamp'] && $current['Value'] !== $rows[0]['Value']))) {
-            array_unshift($rows, $current);
-        }
         $list = [];
-        foreach ($rows as $row) {
-            $read = ReadParser::parse((string) $row['Value'], 0, (int) $row['TimeStamp']);
-            if (!$read['ok']) {
-                continue;
-            }
+        foreach (array_slice($log->entries(), 0, $limit) as $entry) {
+            $id = (string) ($entry['id'] ?? '');
             $list[] = [
-                'time'   => (int) $row['TimeStamp'],
-                'id'     => $read['id'],
-                'name'   => $nameOf($read['id']),
-                'type'   => $read['type'],
-                'result' => $log->find($read['ts'], $read['id']),
+                'time'   => (int) ($entry['time'] ?? strtotime((string) ($entry['ts'] ?? ''))),
+                'id'     => $id,
+                'name'   => $nameOf($id),
+                // Home Key IDs have 8 bytes, card UIDs 4, 7 or 10
+                'type'   => $entry['type'] ?? (strlen($id) === 16 ? 'homekey' : 'card'),
+                'result' => $entry['result'] ?? null,
             ];
-            if (count($list) === $limit) {
-                break;
-            }
         }
         return $list;
     }

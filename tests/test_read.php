@@ -14,7 +14,7 @@ $tests['Read: known key, schedule open, script gets KEY_ID, KEY_NAME, KEY_TYPE, 
     read($m, '1a2b3c4d5e6f7a8b', 1, 'homekey');
     $ts = json_decode(GetValue(100), true)['ts'];
     check(TestRegistry::$scriptRuns === [[300, ['KEY_ID' => '1a2b3c4d5e6f7a8b', 'KEY_NAME' => 'Alex iPhone', 'KEY_TYPE' => 'homekey', 'TS' => $ts]]], json_encode(TestRegistry::$scriptRuns));
-    check(decisions($m)[0] === ['ts' => $ts, 'id' => '1a2b3c4d5e6f7a8b', 'result' => 'allowed'], json_encode(decisions($m)));
+    check(decisions($m)[0] === ['ts' => $ts, 'id' => '1a2b3c4d5e6f7a8b', 'result' => 'allowed', 'type' => 'homekey', 'time' => TestRegistry::$now], json_encode(decisions($m)));
     check(in_array('Door opener started for Alex iPhone', TestRegistry::$log), json_encode(TestRegistry::$log));
 };
 
@@ -119,14 +119,10 @@ $tests['Read: allowed without script logs, does not run anything'] = function ()
 // MQTT variable that holds only the ID (e.g. a device that extracts "id")
 function readBare(DoorstationAccess $m, string $id): void
 {
-    TestRegistry::$archiveID = 50;
-    TestRegistry::$logging[100] = true;
-    TestRegistry::$archive[100] ??= [];
     TestRegistry::$now++;
     TestRegistry::$values[100] = $id;
     TestRegistry::$variables[100]['VariableUpdated'] = TestRegistry::$now;
     $m->MessageSink(TestRegistry::$now, 100, VM_UPDATE, [$id, true, '']);
-    array_unshift(TestRegistry::$archive[100], ['TimeStamp' => TestRegistry::$now, 'Value' => $id]);
 }
 
 $tests['Read: bare ID opens, type from length, shown with result'] = function () {

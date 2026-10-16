@@ -12,9 +12,8 @@ class DoorstationAccess extends IPSModule
     const STATUS_NO_READ = 201;
     const STATUS_NO_SCRIPT = 202;
     const STATUS_READ_NOT_STRING = 203;
-    const ARCHIVE_MODULE = '{43192F0B-135B-4CE7-A0A7-1475603F3060}';
     const NAME_MAX = 40;
-    // order below the instance: access list, category with the schedules, reader status
+    // order below the instance: access list, schedules, reader status
     const POS_RECENT = 10;
     const POS_KEYS = 20;
     const POS_READER = 30;
@@ -66,11 +65,21 @@ class DoorstationAccess extends IPSModule
         }
 
         $this->RegisterVariableString('Recent', $this->Translate("Accesses"), '~HTMLBox', self::POS_RECENT);
-        $keys = $this->keysCategory();
-        // schedules of earlier versions were directly below the instance
-        foreach (IPS_GetChildrenIDs($this->InstanceID) as $child) {
-            if ($this->isKeyEvent($child)) {
-                IPS_SetParent($child, $keys);
+        // an earlier version kept the schedules in a category, the old WebFront does not show it
+        $category = @IPS_GetObjectIDByIdent('Keys', $this->InstanceID);
+        if ($category !== false && IPS_CategoryExists($category)) {
+            foreach (IPS_GetChildrenIDs($category) as $child) {
+                if ($this->isKeyEvent($child)) {
+                    IPS_SetParent($child, $this->InstanceID);
+                }
+            }
+            if (IPS_GetChildrenIDs($category) === []) {
+                IPS_DeleteCategory($category);
+            }
+        }
+        foreach ($this->keyEvents() as $event) {
+            if (IPS_GetObject($event)['ObjectPosition'] !== self::POS_KEYS) {
+                IPS_SetPosition($event, self::POS_KEYS);
             }
         }
         if ($statusVar > 0) {
@@ -92,12 +101,12 @@ class DoorstationAccess extends IPSModule
         if ($script > 0) {
             $this->RegisterMessage($script, OM_UNREGISTER);
         }
-        $this->RegisterMessage($keys, OM_CHILDADDED);
-        $this->RegisterMessage($keys, OM_CHILDREMOVED);
+        $this->RegisterMessage($this->InstanceID, OM_CHILDADDED);
+        $this->RegisterMessage($this->InstanceID, OM_CHILDREMOVED);
         foreach ($this->keyEvents() as $event) {
             $this->watchKey($event);
         }
-        // the archive may not be ready during startup; KR_READY runs ApplyChanges again
+        // objects may not be complete during startup; KR_READY runs ApplyChanges again
         if (IPS_GetKernelRunlevel() === KR_READY) {
             $this->refresh();
         }
@@ -105,11 +114,7 @@ class DoorstationAccess extends IPSModule
 
     public function GetConfigurationForm()
     {
-        $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
-        if (!$this->archiveOk()) {
-            array_unshift($form['elements'], ['type' => 'Label', 'caption' => $this->archiveHint()]);
-        }
-        return json_encode($form);
+        return file_get_contents(__DIR__ . '/form.json');
     }
 
     public function GetVisualizationTile()
@@ -223,40 +228,22 @@ class DoorstationAccess extends IPSModule
             IPS_SetEventScheduleGroupPoint($event, $day, 0, 0, 0, 0, 1);
         }
         IPS_SetEventActive($event, true);
+        IPS_SetPosition($event, self::POS_KEYS);
         // attach only when complete: the tile visualization seems to keep a schedule that was empty when it appeared
-        IPS_SetParent($event, $this->keysCategory());
+        IPS_SetParent($event, $this->InstanceID);
         IPS_SetIdent($event, 'key_' . $id);
         // OM_CHILDADDED may arrive before the ident is set
         $this->watchKey($event);
     }
 
-    private function archiveID(): int
-    {
-        $ids = IPS_GetInstanceListByModuleID(self::ARCHIVE_MODULE);
-        return $ids[0] ?? 0;
-    }
-
-    private function archiveOk(): bool
-    {
-        $archive = $this->archiveID();
-        $read = $this->ReadPropertyInteger('ReadVariable');
-        return $archive > 0 && $read > 0 && AC_GetLoggingStatus($archive, $read);
-    }
-
-    // Last accesses from the archive of the read variable; [] without archiving
+    // Last accesses from the own decision log
     private function recent(): array
     {
-        if (!$this->archiveOk()) {
-            return [];
-        }
-        $read = $this->ReadPropertyInteger('ReadVariable');
-        $rows = AC_GetLoggedValues($this->archiveID(), $read, 0, 0, 20);
-        $current = ['TimeStamp' => IPS_GetVariable($read)['VariableUpdated'], 'Value' => (string) GetValue($read)];
         $nameOf = function (string $id): ?string {
             $event = $this->keyEvent($id);
             return $event > 0 ? IPS_GetObject($event)['ObjectName'] : null;
         };
-        return RecentList::build($rows, $current, $nameOf, new DecisionLog($this->ReadAttributeString('Decisions')));
+        return RecentList::build(new DecisionLog($this->ReadAttributeString('Decisions')), $nameOf);
     }
 
     private function handleRead(string $raw): void
@@ -299,7 +286,7 @@ class DoorstationAccess extends IPSModule
             }
 
             $log = new DecisionLog($this->ReadAttributeString('Decisions'));
-            $log->add($read['ts'], $id, $result);
+            $log->add($read['ts'], $id, $result, $read['type'] !== '' ? $read['type'] : 'card', $this->now());
             $this->WriteAttributeString('Decisions', $log->toJson());
         } finally {
             IPS_SemaphoreLeave($semaphore);
@@ -322,7 +309,7 @@ class DoorstationAccess extends IPSModule
     // Weekly schedule event of a key, 0 if unknown
     private function keyEvent(string $id): int
     {
-        $event = @IPS_GetObjectIDByIdent('key_' . $id, $this->keysCategory());
+        $event = @IPS_GetObjectIDByIdent('key_' . $id, $this->InstanceID);
         return $event !== false && IPS_EventExists($event) ? $event : 0;
     }
 
@@ -334,33 +321,13 @@ class DoorstationAccess extends IPSModule
     // Weekly schedule events of all keys
     private function keyEvents(): array
     {
-        return array_values(array_filter(IPS_GetChildrenIDs($this->keysCategory()), fn ($id) => $this->isKeyEvent($id)));
-    }
-
-    // Category "Keys" below the instance holding the schedules, created if missing
-    private function keysCategory(): int
-    {
-        $id = @IPS_GetObjectIDByIdent('Keys', $this->InstanceID);
-        if ($id !== false && IPS_CategoryExists($id)) {
-            return $id;
-        }
-        $id = IPS_CreateCategory();
-        IPS_SetName($id, $this->Translate("Keys"));
-        IPS_SetPosition($id, self::POS_KEYS);
-        IPS_SetParent($id, $this->InstanceID);
-        IPS_SetIdent($id, 'Keys');
-        return $id;
+        return array_values(array_filter(IPS_GetChildrenIDs($this->InstanceID), fn ($id) => $this->isKeyEvent($id)));
     }
 
     private function watchKey(int $event): void
     {
         $this->RegisterMessage($event, OM_CHANGENAME);
         $this->RegisterMessage($event, EM_CHANGEACTIVE);
-    }
-
-    private function archiveHint(): string
-    {
-        return $this->Translate("The read variable is not archived. Enable archiving to see recent accesses.");
     }
 
     private function readerStatus(): ?string
@@ -398,19 +365,15 @@ class DoorstationAccess extends IPSModule
             ];
         }
         return [
-            'status'     => $this->readerStatus(),
-            'archive_ok' => $this->archiveOk(),
-            'recent'     => $this->recent(),
-            'keys'       => $keys,
+            'status' => $this->readerStatus(),
+            'recent' => $this->recent(),
+            'keys'   => $keys,
         ];
     }
 
     // HTML box for the old WebFront
     private function renderHtml(array $payload): string
     {
-        if (!$payload['archive_ok']) {
-            return '<div>' . htmlspecialchars($this->archiveHint()) . '</div>';
-        }
         $hints = [
             'unknown'          => $this->Translate("unknown"),
             'inactive'         => $this->Translate("inactive"),

@@ -8,8 +8,7 @@ $tests['Display: payload after two reads, newest allowed with name, older unknow
     readLogged($m, 'c0ffee42');
     readLogged($m, '1a2b3c4d5e6f7a8b', 'homekey');
     $p = lastPayload($m);
-    check(array_keys($p) === ['status', 'archive_ok', 'recent', 'keys'], json_encode(array_keys($p)));
-    check($p['archive_ok'] === true, 'archive_ok');
+    check(array_keys($p) === ['status', 'recent', 'keys'], json_encode(array_keys($p)));
     check($p['recent'][0] === ['time' => TestRegistry::$now, 'id' => '1a2b3c4d5e6f7a8b', 'name' => 'Alex iPhone', 'type' => 'homekey', 'result' => 'allowed'], json_encode($p['recent'][0]));
     check($p['recent'][1]['name'] === null && $p['recent'][1]['result'] === 'unknown', json_encode($p['recent'][1]));
 };
@@ -52,18 +51,12 @@ $tests['Display: reader status as own variable with profile'] = function () {
     check(!isset($m->variables['Reader']), 'Reader kept');
 };
 
-$tests['Display: archiving off, recent empty, hint in form and HTML box'] = function () {
+$tests['Display: list works without archiving, no archive hint'] = function () {
     $m = makeAccess();
     addKey('c0ffee42', 'Card');
     read($m, 'c0ffee42');
-    $p = lastPayload($m);
-    check($p['archive_ok'] === false && $p['recent'] === [], json_encode($p));
-    $hint = 'The read variable is not archived. Enable archiving to see recent accesses.';
-    check(str_contains($m->GetConfigurationForm(), $hint), 'form');
-    check(str_contains($m->value('Recent'), $hint), 'HTML box');
-    TestRegistry::$archiveID = 50;
-    TestRegistry::$logging[100] = true;
-    check(!str_contains($m->GetConfigurationForm(), $hint), 'hint with archiving');
+    check(lastPayload($m)['recent'][0]['result'] === 'allowed', json_encode(lastPayload($m)));
+    check(!str_contains($m->GetConfigurationForm(), 'archiv'), 'archive hint in form');
 };
 
 $tests['Display: HTML box escapes names'] = function () {
@@ -78,13 +71,11 @@ $tests['Display: HTML box escapes names'] = function () {
 $tests['Display: HTML box colors by result'] = function () {
     $m = makeAccess();
     addKey('c0ffee42', 'Card');
-    archiveReads(['0d15ea5e']);  // no decision known
     readLogged($m, '04a1b2c3d4e5f6');
     readLogged($m, 'c0ffee42');
     $html = $m->value('Recent');
     check(str_contains($html, '<td style="color:#2E7D32">Card</td>'), 'green cell: ' . $html);
     check(preg_match('/<tr title="unknown"><td style="color:#C62828">/', $html) === 1, 'red: ' . $html);
-    check(str_contains($html, '<tr><td>'), 'neutral row missing: ' . $html);
     check(str_contains($html, 'Unknown (04a1b2c3d4e5f6)'), 'unknown name');
     check(str_contains($html, date('d.m.Y H:i', TestRegistry::$now)), 'date');
 };
@@ -102,15 +93,15 @@ $tests['Display: renaming the event updates HTML box and tile'] = function () {
 };
 
 $tests['Display: new child event registered, removed key unknown on next read'] = function () {
-    archiveReads(['c0ffee42']);
     $m = makeAccess();
-    check(in_array([keysCat(), OM_CHILDADDED], $m->messages) && in_array([keysCat(), OM_CHILDREMOVED], $m->messages), 'category messages');
+    readsOf($m, ['c0ffee42']);
+    check(in_array([2, OM_CHILDADDED], $m->messages) && in_array([2, OM_CHILDREMOVED], $m->messages), 'category messages');
     $m->RequestAction('CreateKey', json_encode(['id' => 'c0ffee42', 'name' => 'Card']));
-    $e = IPS_GetObjectIDByIdent('key_c0ffee42', keysCat());
-    $m->MessageSink(TestRegistry::$now, keysCat(), OM_CHILDADDED, [$e]);
+    $e = IPS_GetObjectIDByIdent('key_c0ffee42', 2);
+    $m->MessageSink(TestRegistry::$now, 2, OM_CHILDADDED, [$e]);
     check(in_array([$e, OM_CHANGENAME], $m->messages), 'child not registered');
     IPS_DeleteEvent($e);
-    $m->MessageSink(TestRegistry::$now, keysCat(), OM_CHILDREMOVED, [$e]);
+    $m->MessageSink(TestRegistry::$now, 2, OM_CHILDREMOVED, [$e]);
     readLogged($m, 'c0ffee42');
     check(lastPayload($m)['recent'][0]['result'] === 'unknown', json_encode(lastPayload($m)));
 };

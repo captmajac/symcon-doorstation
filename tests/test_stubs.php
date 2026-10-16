@@ -24,15 +24,6 @@ $tests['Stub: create event, find by ident, read schedule'] = function () {
     check(!IPS_EventExists($id) && IPS_GetChildrenIDs(2) === [], 'not deleted');
 };
 
-$tests['Stub: archive newest first with limit, logging status'] = function () {
-    TestRegistry::$archiveID = 50;
-    TestRegistry::$archive[100] = [['TimeStamp' => 3, 'Value' => 'c'], ['TimeStamp' => 2, 'Value' => 'b'], ['TimeStamp' => 1, 'Value' => 'a']];
-    TestRegistry::$logging[100] = true;
-    check(IPS_GetInstanceListByModuleID('{43192F0B-135B-4CE7-A0A7-1475603F3060}') === [50], 'archive instance');
-    check(AC_GetLoggingStatus(50, 100) === true && AC_GetLoggingStatus(50, 101) === false, 'logging');
-    check(array_column(AC_GetLoggedValues(50, 100, 0, 0, 2), 'Value') === ['c', 'b'], 'limit');
-};
-
 $tests['Stub: helpers addKey and read'] = function () {
     $m = makeAccess();
     $id = addKey('c0ffee42', 'Card');

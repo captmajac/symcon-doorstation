@@ -23,8 +23,6 @@
             "Access": "Zugang",
             "Locked": "Gesperrt",
             "Accesses": "Zugriffe",
-            "Keys": "Schlüssel",
-            "The read variable is not archived. Enable archiving to see recent accesses.": "Die Lesevariable wird nicht archiviert. Archivierung einschalten, um die letzten Zugriffe zu sehen.",
             "Offline": "Offline",
             "Degraded": "Gestört",
             "Online": "Online",
@@ -50,7 +48,6 @@
             "Delete key?": "Schlüssel löschen?",
             "Back": "Zurück",
             "Manage keys": "Schlüssel verwalten",
-            "Enable archiving of the read variable": "Archivierung der Lesevariable einschalten",
             "No keys yet": "Noch keine Schlüssel"
         }
     }

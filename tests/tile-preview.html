@@ -10,6 +10,8 @@
     #log { font: 12px monospace; padding: 8px; opacity: 0.8; white-space: pre-wrap; }
     #tile { height: 340px; margin: 8px; border: 1px solid #556; border-radius: 10px; }
     #bar { padding: 8px; display: flex; gap: 8px; }
+    /* stand-in for the Symcon icons (icons.js is only available in Symcon) */
+    #tile i[class*="fa-"]::before { content: '\25CF'; font-style: normal; }
 </style>
 </head>
 <body>
@@ -18,7 +20,7 @@
 <div id="bar">
     <button onclick="document.body.classList.toggle('light')">hell/dunkel</button>
     <button onclick="document.getElementById('tile').style.height = document.getElementById('tile').style.height === '120px' ? '340px' : '120px'">klein/groß</button>
-    <button onclick="handleMessage(JSON.stringify(Object.assign({}, sample, {archive_ok: false, recent: []})))">Archiv aus</button>
+    <button onclick="handleMessage(JSON.stringify(Object.assign({}, sample, {recent: []})))">leer</button>
     <button onclick="handleMessage(JSON.stringify(sample))">Daten</button>
 </div>
 <div id="tile"></div>
@@ -37,7 +39,6 @@
     const now = Math.floor(Date.now() / 1000);
     const sample = {
         status: 'online',
-        archive_ok: true,
         recent: [
             { time: now - 60, id: '1a2b3c4d5e6f7a8b', name: 'Alex iPhone', type: 'homekey', result: 'allowed' },
             { time: now - 3600, id: '04f0e1d2c3b4a5', name: null, type: 'card', result: 'unknown' },

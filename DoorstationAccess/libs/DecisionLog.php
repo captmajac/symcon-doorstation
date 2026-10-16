@@ -2,12 +2,13 @@
 
 declare(strict_types=1);
 
-// Last access decisions, newest first, kept in an instance attribute.
+// Last access decisions, newest first, kept in an instance attribute. Source of the access list:
+// the archive of the read variable misses repeated reads of the same key when the variable holds only the ID.
 class DecisionLog
 {
     const MAX = 20;
 
-    private array $entries = [];  // [['ts','id','result']]
+    private array $entries = [];  // [['ts','id','result','type','time']]; earlier versions lack type and time
 
     public function __construct(string $json)
     {
@@ -17,20 +18,15 @@ class DecisionLog
         }
     }
 
-    public function add(string $ts, string $id, string $result): void
+    public function add(string $ts, string $id, string $result, string $type, int $time): void
     {
-        array_unshift($this->entries, ['ts' => $ts, 'id' => $id, 'result' => $result]);
+        array_unshift($this->entries, ['ts' => $ts, 'id' => $id, 'result' => $result, 'type' => $type, 'time' => $time]);
         $this->entries = array_slice($this->entries, 0, self::MAX);
     }
 
-    public function find(string $ts, string $id): ?string
+    public function entries(): array
     {
-        foreach ($this->entries as $entry) {
-            if (($entry['ts'] ?? null) === $ts && ($entry['id'] ?? null) === $id) {
-                return $entry['result'] ?? null;
-            }
-        }
-        return null;
+        return $this->entries;
     }
 
     public function toJson(): string

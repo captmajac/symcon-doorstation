@@ -6,9 +6,9 @@ IP-Symcon modules for the [doorstation](https://github.com/captmajac/doorstation
 
 Decides on access for RFID cards, AirTags and Apple Home Key reported by the doorstation service `rfid`, starts your door opener script (optional) and shows the last accesses.
 
-- Every key is a **weekly schedule** in the category *Keys* below the instance (one group per weekday): the schedule name is the display name, action 1 is *Access*, action 2 *Locked*. An inactive schedule locks the key.
+- Every key is a **weekly schedule** below the instance (one group per weekday): the schedule name is the display name, action 1 is *Access*, action 2 *Locked*. An inactive schedule locks the key.
 - Unknown keys appear in the list. Give them a name in the tile and they are unlocked (all week, restrict the schedule as you like).
-- The last 5 accesses come from the **archive** of the read variable: green = access, red = denied (unknown, inactive, outside schedule, too old).
+- The last 5 accesses come from the module's own record of its decisions (the last 20), no archiving needed: green = access, red = denied (unknown, inactive, outside schedule, too old).
 
 ### Requirements
 
@@ -28,7 +28,6 @@ Decides on access for RFID cards, AirTags and Apple Home Key reported by the doo
 | Status variable | MQTT variable of `doorstation/rfid/status` (optional, shown as a dot in the tile and as variable *Reader*) |
 | Door opener script | optional, runs when access is granted; without it the module only decides and logs |
 
-Enable **archiving** of the read variable (*Variable → Edit → Logging*). Without it the module still decides on access, but shows no list.
 
 Reads older than 5 seconds (or more than 5 seconds in the future, or without a time zone) are discarded.
 
@@ -36,7 +35,7 @@ Reads older than 5 seconds (or more than 5 seconds in the future, or without a t
 
 1. Hold the card, AirTag or iPhone to the reader: it appears as *Unknown* in the tile.
 2. Tap **+**, enter a name, *Create*. The schedule is created with access all week.
-3. Tap the clock to edit the schedule. *Manage keys* lists all keys: rename, switch active, delete.
+3. Tap the clock to edit the schedule. The gear (*Manage keys*) lists all keys: rename, switch active, delete.
 
 ### Door opener script
 
@@ -58,7 +57,7 @@ IPS_LogMessage('Door', 'Opening for ' . $_IPS['KEY_NAME']);
 
 ### Old WebFront
 
-Below the instance, in this order: *Accesses* (HTML box with the last accesses), the category *Keys* with the schedules, and *Reader* (Offline / Degraded / Online, only when a status variable is selected). The schedules can be edited there as usual; naming new keys works in the tile.
+Below the instance, in this order: *Accesses* (HTML box with the last accesses), the schedules, and *Reader* (Offline / Degraded / Online, only when a status variable is selected). The schedules can be edited there as usual; naming new keys works in the tile.
 
 ## Development
 

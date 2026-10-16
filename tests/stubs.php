@@ -15,9 +15,6 @@ class TestRegistry
     public static array $objects = [];    // ID => ['parent','ident','name','type'] (events)
     public static array $events = [];     // ID => IPS_GetEvent array
     public static array $scriptRuns = []; // [scriptID, params]
-    public static array $archive = [];    // VariableID => [['TimeStamp','Value']], newest first
-    public static array $logging = [];    // VariableID => bool
-    public static ?int $archiveID = null;
     public static bool $semaphoreFree = true;
     public static array $profiles = [];
     public static array $parented = [];   // event ID => IPS_GetEvent array at the moment of IPS_SetParent   // name => ['type', 'icon', 'associations' => [value => [name, icon, color]]]
@@ -34,9 +31,6 @@ class TestRegistry
         self::$objects = [];
         self::$events = [];
         self::$scriptRuns = [];
-        self::$archive = [];
-        self::$logging = [];
-        self::$archiveID = null;
         self::$semaphoreFree = true;
         self::$profiles = [];
         self::$parented = [];
@@ -202,6 +196,7 @@ function IPS_CreateCategory()
     return $id;
 }
 function IPS_CategoryExists($ID) { return (TestRegistry::$objects[$ID]['type'] ?? null) === 0; }
+function IPS_DeleteCategory($ID) { unset(TestRegistry::$objects[$ID]); return true; }
 
 // Events
 function IPS_CreateEvent($Type)
@@ -243,13 +238,3 @@ function IPS_DeleteEvent($ID)
 }
 
 // Archive
-function IPS_GetInstanceListByModuleID($ModuleID)
-{
-    return $ModuleID === '{43192F0B-135B-4CE7-A0A7-1475603F3060}' && TestRegistry::$archiveID !== null ? [TestRegistry::$archiveID] : [];
-}
-function AC_GetLoggingStatus($InstanceID, $VariableID) { return TestRegistry::$logging[$VariableID] ?? false; }
-function AC_GetLoggedValues($InstanceID, $VariableID, $StartTime, $EndTime, $Limit)
-{
-    $rows = TestRegistry::$archive[$VariableID] ?? [];
-    return $Limit > 0 ? array_slice($rows, 0, $Limit) : $rows;
-}

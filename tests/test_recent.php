@@ -1,23 +1,26 @@
 <?php
 
-// DecisionLog (stored decisions) and RecentList (last accesses from the archive)
+// DecisionLog (own record of the last decisions) and RecentList (last accesses for display)
 
-function row(int $time, string $id, string $ts = null, string $type = 'card'): array
+function logWith(array $entries): DecisionLog
 {
-    return ['TimeStamp' => $time, 'Value' => json_encode(['ts' => $ts ?? "ts$time", 'type' => $type, 'id' => $id])];
+    $log = new DecisionLog('[]');
+    foreach (array_reverse($entries) as [$time, $id, $result, $type]) {
+        $log->add("ts$time", $id, $result, $type, $time);
+    }
+    return $log;
 }
 
-$tests['Log: 21 entries keep 20, oldest dropped; find by ts+id'] = function () {
+$tests['Log: 21 entries keep 20, newest first, restored from JSON'] = function () {
     $log = new DecisionLog('[]');
     for ($i = 1; $i <= 21; $i++) {
-        $log->add("ts$i", 'aaaaaaa' . dechex($i % 16), 'allowed');
+        $log->add("ts$i", 'c0ffee42', 'allowed', 'card', $i);
     }
-    check(count(json_decode($log->toJson(), true)) === 20, 'not 20');
-    check($log->find('ts1', 'aaaaaaa1') === null, 'oldest still there');
-    check($log->find('ts21', 'aaaaaaa5') === 'allowed', 'newest missing');
-    check($log->find('ts20', 'aaaaaaa5') === null, 'other ts matched');
-    $again = new DecisionLog($log->toJson());
-    check($again->find('ts21', 'aaaaaaa5') === 'allowed', 'not restored from JSON');
+    $entries = $log->entries();
+    check(count($entries) === 20, 'not 20');
+    check($entries[0] === ['ts' => 'ts21', 'id' => 'c0ffee42', 'result' => 'allowed', 'type' => 'card', 'time' => 21], json_encode($entries[0]));
+    check(end($entries)['time'] === 2, 'oldest still there');
+    check((new DecisionLog($log->toJson()))->entries() === $entries, 'not restored from JSON');
 };
 
 $tests['Log: broken JSON gives empty log'] = function () {
@@ -25,53 +28,28 @@ $tests['Log: broken JSON gives empty log'] = function () {
     check((new DecisionLog('{"a":1}'))->toJson() === '[]', 'object accepted');
 };
 
-$tests['List: 7 valid rows give 5 newest with name and result'] = function () {
-    $rows = [];
+$tests['List: 7 entries give 5 newest with name, type and result'] = function () {
+    $entries = [];
     for ($t = 7; $t >= 1; $t--) {
-        $rows[] = row($t, 'c0ffee42');
+        $entries[] = [$t, 'c0ffee42', $t === 7 ? 'allowed' : 'unknown', 'card'];
     }
-    $log = new DecisionLog('[]');
-    $log->add('ts7', 'c0ffee42', 'allowed');
-    $list = RecentList::build($rows, null, fn ($id) => $id === 'c0ffee42' ? 'Card garden' : null, $log);
+    $list = RecentList::build(logWith($entries), fn ($id) => $id === 'c0ffee42' ? 'Card garden' : null);
     check(array_column($list, 'time') === [7, 6, 5, 4, 3], json_encode(array_column($list, 'time')));
     check($list[0] === ['time' => 7, 'id' => 'c0ffee42', 'name' => 'Card garden', 'type' => 'card', 'result' => 'allowed'], json_encode($list[0]));
-    check($list[1]['result'] === null, 'result for unknown decision');
+    check($list[1]['result'] === 'unknown', json_encode($list[1]));
 };
 
-$tests['List: current newer than first row comes first, same value not twice'] = function () {
-    $rows = [row(5, 'c0ffee42'), row(4, 'c0ffee42')];
-    $newer = row(9, '04a1b2c3d4e5f6');
-    $list = RecentList::build($rows, $newer, fn ($id) => null, new DecisionLog('[]'));
-    check(array_column($list, 'time') === [9, 5, 4], json_encode($list));
-    $same = ['TimeStamp' => 6, 'Value' => $rows[0]['Value']];
-    $list = RecentList::build($rows, $same, fn ($id) => null, new DecisionLog('[]'));
-    check(array_column($list, 'time') === [5, 4], 'duplicate: ' . json_encode($list));
+$tests['List: same key several times in a row, every read listed'] = function () {
+    $list = RecentList::build(logWith([[9, 'c0ffee42', 'allowed', 'card'], [8, 'c0ffee42', 'allowed', 'card'], [7, 'c0ffee42', 'allowed', 'card']]), fn ($id) => null);
+    check(array_column($list, 'time') === [9, 8, 7], json_encode($list));
 };
 
-$tests['List: current older than first row ignored'] = function () {
-    $list = RecentList::build([row(5, 'c0ffee42')], row(3, '04a1b2c3d4e5f6'), fn ($id) => null, new DecisionLog('[]'));
-    check(array_column($list, 'time') === [5], json_encode($list));
-};
-
-$tests['List: rows that are neither JSON nor an ID, empty or without id are skipped'] = function () {
-    $rows = [
-        ['TimeStamp' => 9, 'Value' => 'hello'],
-        ['TimeStamp' => 8, 'Value' => ''],
-        ['TimeStamp' => 7, 'Value' => '{"ts":"x"}'],
-        row(6, 'c0ffee42'),
-    ];
-    $list = RecentList::build($rows, null, fn ($id) => null, new DecisionLog('[]'));
-    check(array_column($list, 'time') === [6], json_encode($list));
-};
-
-$tests['List: upper-case ID from archive, unknown name null'] = function () {
-    $list = RecentList::build([row(5, '04A1B2C3D4E5F6', null, 'homekey')], null, fn ($id) => null, new DecisionLog('[]'));
-    check($list[0]['id'] === '04a1b2c3d4e5f6' && $list[0]['name'] === null && $list[0]['type'] === 'homekey', json_encode($list));
-};
-
-$tests['List: decision found with upper-case archive ID'] = function () {
-    $log = new DecisionLog('[]');
-    $log->add('ts5', '04a1b2c3d4e5f6', 'unknown');
-    $list = RecentList::build([row(5, '04A1B2C3D4E5F6')], null, fn ($id) => null, $log);
-    check($list[0]['result'] === 'unknown', json_encode($list));
+$tests['List: entries of an earlier version without time and type'] = function () {
+    $log = new DecisionLog(json_encode([
+        ['ts' => '2026-10-16T19:30:00.000+02:00', 'id' => '1a2b3c4d5e6f7a8b', 'result' => 'allowed'],
+        ['ts' => '2026-10-16T19:29:00.000+02:00', 'id' => 'c0ffee42', 'result' => 'unknown'],
+    ]));
+    $list = RecentList::build($log, fn ($id) => null);
+    check($list[0]['time'] === strtotime('2026-10-16T19:30:00+02:00') && $list[0]['type'] === 'homekey', json_encode($list[0]));
+    check($list[1]['type'] === 'card', json_encode($list[1]));
 };

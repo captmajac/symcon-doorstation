@@ -23,23 +23,11 @@ function makeAccess(array $props = []): TestAccess
     return $m;
 }
 
-// Category "Keys" below instance 2 (created like the module does)
-function keysCat(): int
-{
-    $cat = IPS_GetObjectIDByIdent('Keys', 2);
-    if ($cat === false) {
-        $cat = IPS_CreateCategory();
-        IPS_SetParent($cat, 2);
-        IPS_SetIdent($cat, 'Keys');
-    }
-    return $cat;
-}
-
-// Key event in category Keys; default: access all week
-function addKey(string $id, string $name, bool $active = true, ?array $groups = null, ?int $parent = null): int
+// Key event below instance 2 (or $parent); default: access all week
+function addKey(string $id, string $name, bool $active = true, ?array $groups = null, int $parent = 2): int
 {
     $e = IPS_CreateEvent(2);
-    IPS_SetParent($e, $parent ?? keysCat());
+    IPS_SetParent($e, $parent);
     IPS_SetIdent($e, "key_$id");
     IPS_SetName($e, $name);
     IPS_SetEventActive($e, $active);
@@ -56,15 +44,12 @@ function read(DoorstationAccess $m, string $id, int $age = 0, string $type = 'ca
     $m->MessageSink(TestRegistry::$now, 100, VM_UPDATE, [TestRegistry::$values[100], true, '']);
 }
 
-// Archived reads of variable 100, newest first; archiving enabled
-function archiveReads(array $ids): void
+// Reads in the given order newest first (oldest is read first), one second apart
+function readsOf(DoorstationAccess $m, array $ids): void
 {
-    TestRegistry::$archiveID = 50;
-    TestRegistry::$logging[100] = true;
-    $t = TestRegistry::$now - 60;
-    foreach ($ids as $id) {
-        TestRegistry::$archive[100][] = ['TimeStamp' => $t, 'Value' => json_encode(['ts' => date('Y-m-d\TH:i:s.vP', $t), 'type' => 'card', 'id' => $id])];
-        $t -= 60;
+    foreach (array_reverse($ids) as $id) {
+        TestRegistry::$now++;
+        read($m, $id);
     }
 }
 
@@ -74,15 +59,11 @@ function lastError(DoorstationAccess $m): ?string
     return $last['error'] ?? null;
 }
 
-// Read that is also archived (one second after the previous one)
+// Read one second after the previous one
 function readLogged(DoorstationAccess $m, string $id, string $type = 'card'): void
 {
-    TestRegistry::$archiveID = 50;
-    TestRegistry::$logging[100] = true;
-    TestRegistry::$archive[100] ??= [];
     TestRegistry::$now++;
     read($m, $id, 0, $type);
-    array_unshift(TestRegistry::$archive[100], ['TimeStamp' => TestRegistry::$now, 'Value' => GetValue(100)]);
 }
 
 function lastPayload(DoorstationAccess $m): array
