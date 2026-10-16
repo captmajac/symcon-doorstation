@@ -125,6 +125,12 @@ $tests['Display: GetVisualizationTile contains handleMessage and the data'] = fu
     check(!str_contains($tile, '</script><'), 'payload breaks out of script');
 };
 
+$tests['Tile: name entry per row, not per ID (same unknown key twice in the list)'] = function () {
+    $html = file_get_contents(__DIR__ . '/../DoorstationAccess/module.html');
+    check(str_contains($html, "editing = 'recent:' + index"), 'recent row not by index');
+    check(!str_contains($html, 'editing = entry.id') && !str_contains($html, 'editing = key.id'), 'still by ID');
+};
+
 $tests['Tile: module.html never puts data into innerHTML, uses the SDK calls'] = function () {
     $html = file_get_contents(__DIR__ . '/../DoorstationAccess/module.html');
     preg_match_all('/innerHTML\s*=\s*([^;]*)/', $html, $m);

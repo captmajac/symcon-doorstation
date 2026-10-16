@@ -12,12 +12,11 @@
     #dsa .row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid rgba(127, 127, 127, 0.25); }
     #dsa .row .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     #dsa .row .time { opacity: 0.75; white-space: nowrap; }
-    #dsa .last { font-size: 1.4em; border-top: none; }
+    #dsa .last { border-top: none; }
     #dsa .allowed { color: #43A047; }
     #dsa .denied { color: #E53935; }
     #dsa .hint, #dsa .error { padding: 6px 0; }
     #dsa .error { color: #E53935; }
-    #dsa .id { opacity: 0.6; font-size: 0.85em; }
     body.small #dsa .older, body.small #dsa #toggle { display: none; }
 </style>
 
@@ -38,7 +37,7 @@
 
     let state = null;
     let manage = false;
-    let editing = null;  // id of the key whose name is being entered
+    let editing = null;  // 'recent:<index>' or 'key:<id>' of the row whose name is being entered
     let errorTimer = null;
 
     const hints = {
@@ -108,12 +107,12 @@
         }
 
         row.appendChild(el('i', entry.type === 'homekey' ? 'fa-light fa-mobile' : 'fa-light fa-id-card'));
-        if (editing === entry.id && entry.name === null) {
+        if (editing === 'recent:' + index && entry.name === null) {
             nameInput(entry.id, '', 'CreateKey').forEach((n) => row.appendChild(n));
             return row;
         }
-        const name = el('span', 'name', entry.name !== null ? entry.name : translate('Unknown') + ' ');
-        if (entry.name === null) name.appendChild(el('span', 'id', entry.id));
+        const name = el('span', 'name', entry.name !== null ? entry.name : translate('Unknown'));
+        name.title = entry.id;
         row.appendChild(name);
         row.appendChild(el('span', 'time', formatTime(entry.time)));
 
@@ -121,20 +120,19 @@
         if (key) {
             row.appendChild(button(translate('Schedule'), () => openObject(key.event), 'fa-light fa-clock'));
         } else {
-            row.appendChild(button(translate('Name key'), () => { editing = entry.id; render(); }, 'fa-light fa-plus'));
+            row.appendChild(button(translate('Name key'), () => { editing = 'recent:' + index; render(); }, 'fa-light fa-plus'));
         }
         return row;
     }
 
     function keyRow(key) {
         const row = el('div', 'row' + (key.allowed_now ? ' allowed' : ' denied'));
-        if (editing === key.id) {
+        if (editing === 'key:' + key.id) {
             nameInput(key.id, key.name, 'RenameKey').forEach((n) => row.appendChild(n));
             return row;
         }
-        const name = el('span', 'name', key.name + ' ');
-        name.appendChild(el('span', 'id', key.id.length > 16 ? key.id.slice(0, 16) + '…' : key.id));
-        name.title = key.allowed_now ? translate('Access now') : translate('Locked now');
+        const name = el('span', 'name', key.name);
+        name.title = (key.allowed_now ? translate('Access now') : translate('Locked now')) + ' · ' + key.id;
         row.appendChild(name);
 
         const active = el('input');
@@ -143,7 +141,7 @@
         active.title = translate('Active');
         active.addEventListener('change', () => requestAction('SetKeyActive', JSON.stringify({ id: key.id, active: active.checked })));
         row.appendChild(active);
-        row.appendChild(button(translate('Rename'), () => { editing = key.id; render(); }, 'fa-light fa-pen'));
+        row.appendChild(button(translate('Rename'), () => { editing = 'key:' + key.id; render(); }, 'fa-light fa-pen'));
         row.appendChild(button(translate('Schedule'), () => openObject(key.event), 'fa-light fa-clock'));
         row.appendChild(button(translate('Delete'), () => {
             if (confirm(translate('Delete key?') + ' ' + key.name)) {
