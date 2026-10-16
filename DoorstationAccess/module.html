@@ -14,8 +14,8 @@
     #dsa .row .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     #dsa .row .time { opacity: 0.75; white-space: nowrap; }
     #dsa .last { border-top: none; }
-    #dsa .allowed { color: #43A047; }
-    #dsa .denied { color: #E53935; }
+    #dsa .allowed { color: #43A047; opacity: 1; }
+    #dsa .denied { color: #E53935; opacity: 1; }
     #dsa .hint, #dsa .error { padding: 6px 0; }
     #dsa .error { color: #E53935; }
     body.small #dsa .older, body.small #dsa #toggle { display: none; }
@@ -100,10 +100,7 @@
 
     function recentRow(entry, index) {
         const row = el('div', 'row' + (index === 0 ? ' last' : ' older'));
-        if (entry.result === 'allowed') {
-            row.classList.add('allowed');
-        } else if (entry.result !== null) {
-            row.classList.add('denied');
+        if (entry.result !== null && entry.result !== 'allowed') {
             row.title = hints[entry.result] || entry.result;
         }
 
@@ -115,7 +112,9 @@
         const name = el('span', 'name', entry.name !== null ? entry.name : translate('Unknown'));
         name.title = entry.id;
         row.appendChild(name);
-        row.appendChild(el('span', 'time', formatTime(entry.time)));
+        // only the time shows the result
+        const result = entry.result === null ? '' : entry.result === 'allowed' ? ' allowed' : ' denied';
+        row.appendChild(el('span', 'time' + result, formatTime(entry.time)));
 
         const key = keyById(entry.id);
         if (key) {
@@ -127,13 +126,16 @@
     }
 
     function keyRow(key) {
-        const row = el('div', 'row' + (key.allowed_now ? ' allowed' : ' denied'));
+        const row = el('div', 'row');
         if (editing === 'key:' + key.id) {
             nameInput(key.id, key.name, 'RenameKey').forEach((n) => row.appendChild(n));
             return row;
         }
         const name = el('span', 'name', key.name);
         name.title = (key.allowed_now ? translate('Access now') : translate('Locked now')) + ' · ' + key.id;
+        const now = el('span', 'dot ' + (key.allowed_now ? 'online' : 'offline'));
+        now.title = name.title;
+        row.appendChild(now);
         row.appendChild(name);
 
         const active = el('input');

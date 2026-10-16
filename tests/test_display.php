@@ -74,8 +74,9 @@ $tests['Display: HTML box colors by result'] = function () {
     readLogged($m, '04a1b2c3d4e5f6');
     readLogged($m, 'c0ffee42');
     $html = $m->value('Recent');
-    check(str_contains($html, '<td style="color:#2E7D32">Card</td>'), 'green cell: ' . $html);
-    check(preg_match('/<tr title="unknown"><td style="color:#C62828">/', $html) === 1, 'red: ' . $html);
+    $time = date('d.m.Y H:i', TestRegistry::$now);
+    check(str_contains($html, '<tr><td>Card</td><td style="text-align:right;color:#2E7D32">' . $time . '</td></tr>'), 'name plain, time green right: ' . $html);
+    check(preg_match('/<tr title="unknown"><td>Unknown \(04a1b2c3d4e5f6\)<\/td><td style="text-align:right;color:#C62828">/', $html) === 1, 'red: ' . $html);
     check(str_contains($html, 'Unknown (04a1b2c3d4e5f6)'), 'unknown name');
     check(str_contains($html, date('d.m.Y H:i', TestRegistry::$now)), 'date');
 };

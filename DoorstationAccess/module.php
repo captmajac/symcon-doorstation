@@ -380,16 +380,16 @@ class DoorstationAccess extends IPSModule
             'outside_schedule' => $this->Translate("outside schedule"),
             'stale'            => $this->Translate("discarded (too old)"),
         ];
-        $html = '<table>';
+        $html = '<table style="width:100%">';
         foreach ($payload['recent'] as $entry) {
             $name = $entry['name'] ?? sprintf($this->Translate("Unknown (%s)"), $entry['id']);
-            // color on each cell, the WebFront styles td itself
-            $td = match (true) {
-                $entry['result'] === null      => '<td>',
-                $entry['result'] === 'allowed' => '<td style="color:#2E7D32">',
-                default                        => '<td style="color:#C62828">',
+            // only the time is colored, on the cell itself as the WebFront styles td
+            $color = match (true) {
+                $entry['result'] === null      => '',
+                $entry['result'] === 'allowed' => ';color:#2E7D32',
+                default                        => ';color:#C62828',
             };
-            $cells = $td . date('d.m.Y H:i', $entry['time']) . '</td>' . $td . htmlspecialchars($name) . '</td>';
+            $cells = '<td>' . htmlspecialchars($name) . '</td><td style="text-align:right' . $color . '">' . date('d.m.Y H:i', $entry['time']) . '</td>';
             if ($entry['result'] === null || $entry['result'] === 'allowed') {
                 $html .= "<tr>$cells</tr>";
             } else {
