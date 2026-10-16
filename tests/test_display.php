@@ -35,7 +35,21 @@ $tests['Display: status null without status variable, degraded with'] = function
     $m = makeAccess(['StatusVariable' => 101]);
     $m->MessageSink(TestRegistry::$now, 101, VM_UPDATE, ['degraded', true, 'online']);
     check(lastPayload($m)['status'] === 'degraded', json_encode(lastPayload($m)));
-    check(str_contains($m->value('Recent'), 'Reader: degraded'), $m->value('Recent'));
+    check(!str_contains($m->value('Recent'), 'degraded'), 'status in HTML box: ' . $m->value('Recent'));
+};
+
+$tests['Display: reader status as own variable with profile'] = function () {
+    $m = makeAccess(['StatusVariable' => 101]);
+    check($m->value('Reader') === 2, 'online: ' . json_encode($m->value('Reader')));
+    check(array_keys(TestRegistry::$profiles['DSA.ReaderStatus']['associations'] ?? []) === [0, 1, 2], 'profile');
+    foreach (['degraded' => 1, 'offline' => 0, ' online ' => 2, 'garbage' => 0] as $text => $expected) {
+        TestRegistry::$values[101] = $text;
+        $m->MessageSink(TestRegistry::$now, 101, VM_UPDATE, [$text, true, '']);
+        check($m->value('Reader') === $expected, "$text: " . json_encode($m->value('Reader')));
+    }
+    $m->properties['StatusVariable'] = 0;
+    $m->ApplyChanges();
+    check(!isset($m->variables['Reader']), 'Reader kept');
 };
 
 $tests['Display: archiving off, recent empty, hint in form and HTML box'] = function () {

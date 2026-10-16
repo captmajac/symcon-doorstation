@@ -7,8 +7,19 @@ $tests['Config: without read variable status 201'] = function () {
     check($m->currentStatus() === 201, 'Status ' . $m->currentStatus());
 };
 
-$tests['Config: without script status 202'] = function () {
-    check(makeAccess(['DoorScript' => 0])->currentStatus() === 202, 'not 202');
+$tests['Config: script is optional, status 102 without script'] = function () {
+    $m = makeAccess(['DoorScript' => 0]);
+    check($m->currentStatus() === 102, 'Status ' . $m->currentStatus());
+    check(in_array([100, VM_UPDATE], $m->messages), 'VM_UPDATE missing');
+    check(!in_array([0, OM_UNREGISTER], $m->messages), 'OM_UNREGISTER on 0');
+};
+
+$tests['Config: selected script that does not exist status 202'] = function () {
+    check(makeAccess(['DoorScript' => 301])->currentStatus() === 202, 'not 202');
+};
+
+$tests['Config: without status variable no reader variable'] = function () {
+    check(!isset(makeAccess()->variables['Reader']), 'Reader exists');
 };
 
 $tests['Config: read variable of type integer status 203'] = function () {

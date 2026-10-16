@@ -19,6 +19,7 @@ class TestRegistry
     public static array $logging = [];    // VariableID => bool
     public static ?int $archiveID = null;
     public static bool $semaphoreFree = true;
+    public static array $profiles = [];   // name => ['type', 'icon', 'associations' => [value => [name, icon, color]]]
 
     public static function reset(): void
     {
@@ -36,6 +37,7 @@ class TestRegistry
         self::$logging = [];
         self::$archiveID = null;
         self::$semaphoreFree = true;
+        self::$profiles = [];
     }
 }
 
@@ -105,6 +107,17 @@ class IPSModule
         }
         return $this->variables[$Ident];
     }
+    protected function MaintainVariable($Ident, $Name, $Type, $Profile, $Position, $Keep)
+    {
+        if (!$Keep) {
+            unset($this->variables[$Ident]);
+        } elseif (!isset($this->variables[$Ident])) {
+            $id = TestRegistry::$nextID++;
+            $this->variables[$Ident] = $id;
+            TestRegistry::$values[$id] = $Type === 1 ? 0 : '';
+        }
+        return true;
+    }
     protected function GetIDForIdent($Ident) { return $this->variables[$Ident] ?? false; }
     protected function SetValue($Ident, $Value) { TestRegistry::$values[$this->variables[$Ident]] = $Value; return true; }
 
@@ -119,6 +132,16 @@ class IPSModule
 
     // test helper
     public function value($Ident) { return TestRegistry::$values[$this->variables[$Ident]]; }
+}
+
+function IPS_VariableProfileExists($Name) { return isset(TestRegistry::$profiles[$Name]); }
+function IPS_CreateVariableProfile($Name, $Type) { TestRegistry::$profiles[$Name] = ['type' => $Type, 'icon' => '', 'associations' => []]; return true; }
+function IPS_SetVariableProfileIcon($Name, $Icon) { TestRegistry::$profiles[$Name]['icon'] = $Icon; return true; }
+function IPS_SetVariableProfileAssociation($Name, $Value, $Text, $Icon, $Color)
+{
+    TestRegistry::$profiles[$Name]['associations'][$Value] = [$Text, $Icon, $Color];
+    ksort(TestRegistry::$profiles[$Name]['associations']);
+    return true;
 }
 
 function IPS_GetKernelRunlevel() { return TestRegistry::$runlevel; }

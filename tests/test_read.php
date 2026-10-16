@@ -67,7 +67,14 @@ $tests['Read: no JSON, no script, no decision'] = function () {
     TestRegistry::$values[100] = '04A1B2C3D4E5F6';
     $m->MessageSink(TestRegistry::$now, 100, VM_UPDATE, ['04A1B2C3D4E5F6', true, '']);
     check(TestRegistry::$scriptRuns === [] && decisions($m) === [], 'reacted');
-    check(in_array('Read ignored: invalid_json', TestRegistry::$log), json_encode(TestRegistry::$log));
+    check(in_array('Read ignored: invalid_json, value: 04A1B2C3D4E5F6', TestRegistry::$log), json_encode(TestRegistry::$log));
+};
+
+$tests['Read: ignored value is logged in full'] = function () {
+    $m = makeAccess();
+    $raw = '{"ts":"2026-10-16T19:22:02.123+02:00","type":"homekey","id":"' . str_repeat('ab', 32) . '"';
+    $m->MessageSink(TestRegistry::$now, 100, VM_UPDATE, [$raw, true, '']);
+    check(in_array("Read ignored: invalid_json, value: $raw", TestRegistry::$log), json_encode(TestRegistry::$log));
 };
 
 $tests['Read: status 201 ignores reads'] = function () {
@@ -98,4 +105,13 @@ $tests['Restart: KR_READY re-registers, does not open with a fresh read in the v
     $m->MessageSink(TestRegistry::$now, 0, KR_READY, []);
     check(TestRegistry::$scriptRuns === [], 'opened on restart');
     check(in_array([100, VM_UPDATE], $m->messages), 'VM_UPDATE missing');
+};
+
+$tests['Read: allowed without script logs, does not run anything'] = function () {
+    $m = makeAccess(['DoorScript' => 0]);
+    addKey('c0ffee42', 'Card');
+    read($m, 'c0ffee42');
+    check(TestRegistry::$scriptRuns === [], 'ran');
+    check(in_array('Access granted for Card, no door opener script', TestRegistry::$log), json_encode(TestRegistry::$log));
+    check(decisions($m)[0]['result'] === 'allowed', json_encode(decisions($m)));
 };

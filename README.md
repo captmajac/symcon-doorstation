@@ -4,7 +4,7 @@ IP-Symcon modules for the [doorstation](https://github.com/captmajac/doorstation
 
 ## Doorstation Access (`DoorstationAccess`)
 
-Decides on access for RFID cards, AirTags and Apple Home Key reported by the doorstation service `rfid`, starts your door opener script and shows the last accesses.
+Decides on access for RFID cards, AirTags and Apple Home Key reported by the doorstation service `rfid`, starts your door opener script (optional) and shows the last accesses.
 
 - Every key is a **weekly schedule** below the instance: the schedule name is the display name, action 1 is *Access*, action 2 *Locked*. An inactive schedule locks the key.
 - Unknown keys appear in the list. Give them a name in the tile and they are unlocked (all week, restrict the schedule as you like).
@@ -14,7 +14,7 @@ Decides on access for RFID cards, AirTags and Apple Home Key reported by the doo
 
 - IP-Symcon 9.0 or newer (tile `openObject` needs 8.2)
 - MQTT client variables of `doorstation/rfid/read` (string) and optionally `doorstation/rfid/status`
-- A script that opens the door
+- Optionally a script that opens the door
 
 ### Installation
 
@@ -25,8 +25,8 @@ Decides on access for RFID cards, AirTags and Apple Home Key reported by the doo
 | Field | Content |
 |---|---|
 | Read variable | MQTT variable of `doorstation/rfid/read` (JSON `{"ts","type","id"}`) |
-| Status variable | MQTT variable of `doorstation/rfid/status` (optional, shown as a dot) |
-| Door opener script | runs when access is granted |
+| Status variable | MQTT variable of `doorstation/rfid/status` (optional, shown as a dot in the tile and as variable *Reader*) |
+| Door opener script | optional, runs when access is granted; without it the module only decides and logs |
 
 Enable **archiving** of the read variable (*Variable → Edit → Logging*). Without it the module still decides on access, but shows no list.
 
@@ -58,7 +58,7 @@ IPS_LogMessage('Door', 'Opening for ' . $_IPS['KEY_NAME']);
 
 ### Old WebFront
 
-The variable *Accesses* is an HTML box with the reader status and the last accesses. The schedules below the instance can be edited there as usual; naming new keys works in the tile.
+The variable *Accesses* is an HTML box with the last accesses. The variable *Reader* (Offline / Degraded / Online) exists only when a status variable is selected. The schedules below the instance can be edited there as usual; naming new keys works in the tile.
 
 ## Development
 

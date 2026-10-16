@@ -14,6 +14,8 @@ class DoorstationAccess extends IPSModule
     const STATUS_READ_NOT_STRING = 203;
     const ARCHIVE_MODULE = '{43192F0B-135B-4CE7-A0A7-1475603F3060}';
     const NAME_MAX = 40;
+    const READER_PROFILE = 'DSA.ReaderStatus';
+    const READER_VALUES = ['offline' => 0, 'degraded' => 1, 'online' => 2];
 
     public function Create()
     {
@@ -60,6 +62,10 @@ class DoorstationAccess extends IPSModule
         }
 
         $this->RegisterVariableString('Recent', $this->Translate("Accesses"), '~HTMLBox', 10);
+        if ($statusVar > 0) {
+            $this->registerReaderProfile();
+        }
+        $this->MaintainVariable('Reader', $this->Translate("Reader"), 1, self::READER_PROFILE, 20, $statusVar > 0);
 
         $status = $this->configStatus();
         $this->SetStatus($status);
@@ -72,7 +78,9 @@ class DoorstationAccess extends IPSModule
             $this->RegisterMessage($statusVar, VM_UPDATE);
             $this->RegisterMessage($statusVar, VM_DELETE);
         }
-        $this->RegisterMessage($script, OM_UNREGISTER);
+        if ($script > 0) {
+            $this->RegisterMessage($script, OM_UNREGISTER);
+        }
         $this->RegisterMessage($this->InstanceID, OM_CHILDADDED);
         $this->RegisterMessage($this->InstanceID, OM_CHILDREMOVED);
         foreach ($this->keyEvents() as $event) {
@@ -241,7 +249,7 @@ class DoorstationAccess extends IPSModule
     {
         $read = ReadParser::parse($raw, $this->now());
         if (!$read['ok']) {
-            $this->LogMessage(sprintf($this->Translate("Read ignored: %s"), $read['error']), KL_WARNING);
+            $this->LogMessage(sprintf($this->Translate("Read ignored: %s, value: %s"), $read['error'], $raw), KL_WARNING);
             return;
         }
         $id = $read['id'];
@@ -283,7 +291,9 @@ class DoorstationAccess extends IPSModule
             IPS_SemaphoreLeave($semaphore);
         }
 
-        if ($result === 'allowed') {
+        if ($result === 'allowed' && $this->ReadPropertyInteger('DoorScript') === 0) {
+            $this->LogMessage(sprintf($this->Translate("Access granted for %s, no door opener script"), $name), KL_MESSAGE);
+        } elseif ($result === 'allowed') {
             IPS_RunScriptEx($this->ReadPropertyInteger('DoorScript'), [
                 'KEY_ID'   => $id,
                 'KEY_NAME' => $name,
@@ -330,6 +340,18 @@ class DoorstationAccess extends IPSModule
         return $statusVar > 0 && IPS_VariableExists($statusVar) ? trim((string) GetValue($statusVar)) : null;
     }
 
+    private function registerReaderProfile(): void
+    {
+        if (IPS_VariableProfileExists(self::READER_PROFILE)) {
+            return;
+        }
+        IPS_CreateVariableProfile(self::READER_PROFILE, 1);
+        IPS_SetVariableProfileIcon(self::READER_PROFILE, 'Network');
+        IPS_SetVariableProfileAssociation(self::READER_PROFILE, 0, $this->Translate("Offline"), '', 0xE53935);
+        IPS_SetVariableProfileAssociation(self::READER_PROFILE, 1, $this->Translate("Degraded"), '', 0xFDD835);
+        IPS_SetVariableProfileAssociation(self::READER_PROFILE, 2, $this->Translate("Online"), '', 0x43A047);
+    }
+
     // Data for the tile, see spec 7.1
     private function payload(): array
     {
@@ -357,12 +379,8 @@ class DoorstationAccess extends IPSModule
     // HTML box for the old WebFront
     private function renderHtml(array $payload): string
     {
-        $html = '';
-        if ($payload['status'] !== null) {
-            $html .= '<div>' . htmlspecialchars(sprintf($this->Translate("Reader: %s"), $payload['status'])) . '</div>';
-        }
         if (!$payload['archive_ok']) {
-            return $html . '<div>' . htmlspecialchars($this->archiveHint()) . '</div>';
+            return '<div>' . htmlspecialchars($this->archiveHint()) . '</div>';
         }
         $hints = [
             'unknown'          => $this->Translate("unknown"),
@@ -370,7 +388,7 @@ class DoorstationAccess extends IPSModule
             'outside_schedule' => $this->Translate("outside schedule"),
             'stale'            => $this->Translate("discarded (too old)"),
         ];
-        $html .= '<table>';
+        $html = '<table>';
         foreach ($payload['recent'] as $entry) {
             $name = $entry['name'] ?? sprintf($this->Translate("Unknown (%s)"), $entry['id']);
             $cells = '<td>' . date('d.m.Y H:i', $entry['time']) . '</td><td>' . htmlspecialchars($name) . '</td>';
@@ -391,6 +409,10 @@ class DoorstationAccess extends IPSModule
     {
         $payload = $this->payload();
         $this->SetValue('Recent', $this->renderHtml($payload));
+        if ($payload['status'] !== null) {
+            // unknown texts count as offline
+            $this->SetValue('Reader', self::READER_VALUES[$payload['status']] ?? 0);
+        }
         $this->UpdateVisualizationValue(json_encode($payload));
     }
 
@@ -405,8 +427,9 @@ class DoorstationAccess extends IPSModule
         if ($read <= 0 || !IPS_VariableExists($read)) {
             return self::STATUS_NO_READ;
         }
+        // the script is optional, but a selected one must exist
         $script = $this->ReadPropertyInteger('DoorScript');
-        if ($script <= 0 || !IPS_ScriptExists($script)) {
+        if ($script > 0 && !IPS_ScriptExists($script)) {
             return self::STATUS_NO_SCRIPT;
         }
         if (IPS_GetVariable($read)['VariableType'] !== 3) {
