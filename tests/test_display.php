@@ -186,3 +186,12 @@ $tests['Display: long unknown ID shortened in the HTML box'] = function () {
     readLogged($m, $id);
     check(str_contains($m->value('Recent'), '<td>' . substr($id, 0, 16) . '…</td>'), $m->value('Recent'));
 };
+
+$tests['Display: icons door for the access list and network for the reader, own icons kept'] = function () {
+    $m = makeAccess(['StatusVariable' => 101]);
+    check(IPS_GetObject($m->variables['Recent'])['ObjectIcon'] === 'Door', 'Recent: ' . IPS_GetObject($m->variables['Recent'])['ObjectIcon']);
+    check(IPS_GetObject($m->variables['Reader'])['ObjectIcon'] === 'Network', 'Reader');
+    IPS_SetIcon($m->variables['Recent'], 'Key');
+    $m->ApplyChanges();
+    check(IPS_GetObject($m->variables['Recent'])['ObjectIcon'] === 'Key', 'own icon overwritten');
+};

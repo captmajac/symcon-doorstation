@@ -62,7 +62,7 @@ $tests['Keys: CreateKey for an existing key is refused'] = function () {
     addKey('c0ffee42', 'Card');
     $m->RequestAction('CreateKey', json_encode(['id' => 'c0ffee42', 'name' => 'Other']));
     check(lastError($m) === 'Key already exists', (string) lastError($m));
-    check(count(IPS_GetChildrenIDs(2)) === 1, 'second event');
+    check(count(array_filter(IPS_GetChildrenIDs(2), 'IPS_EventExists')) === 1, 'second event');
 };
 
 $tests['Keys: name blank or 41 characters refused, surrounding spaces trimmed'] = function () {

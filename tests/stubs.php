@@ -105,6 +105,7 @@ class IPSModule
             $id = TestRegistry::$nextID++;
             $this->variables[$Ident] = $id;
             TestRegistry::$values[$id] = '';
+            TestRegistry::$objects[$id] = ['parent' => $this->InstanceID, 'ident' => $Ident, 'name' => $Name, 'type' => 2];
         }
         return $this->variables[$Ident];
     }
@@ -115,11 +116,12 @@ class IPSModule
         $this->positions[$Ident] = $Position;
         $this->presentations[$Ident] = $Profile;
         if (!$Keep) {
-            unset($this->variables[$Ident]);
+            unset(TestRegistry::$objects[$this->variables[$Ident] ?? -1], $this->variables[$Ident]);
         } elseif (!isset($this->variables[$Ident])) {
             $id = TestRegistry::$nextID++;
             $this->variables[$Ident] = $id;
             TestRegistry::$values[$id] = $Type === 1 ? 0 : '';
+            TestRegistry::$objects[$id] = ['parent' => $this->InstanceID, 'ident' => $Ident, 'name' => $Name, 'type' => 2];
         }
         return true;
     }
@@ -176,8 +178,9 @@ function IPS_GetChildrenIDs($ID)
 function IPS_GetObject($ID)
 {
     $o = TestRegistry::$objects[$ID];
-    return ['ObjectID' => $ID, 'ParentID' => $o['parent'], 'ObjectIdent' => $o['ident'], 'ObjectName' => $o['name'], 'ObjectType' => $o['type'], 'ObjectPosition' => $o['position'] ?? 0];
+    return ['ObjectID' => $ID, 'ParentID' => $o['parent'], 'ObjectIdent' => $o['ident'], 'ObjectName' => $o['name'], 'ObjectType' => $o['type'], 'ObjectPosition' => $o['position'] ?? 0, 'ObjectIcon' => $o['icon'] ?? ''];
 }
+function IPS_SetIcon($ID, $Icon) { TestRegistry::$objects[$ID]['icon'] = $Icon; return true; }
 function IPS_SetParent($ID, $ParentID)
 {
     TestRegistry::$objects[$ID]['parent'] = $ParentID;

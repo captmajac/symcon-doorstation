@@ -69,6 +69,7 @@ class DoorstationAccess extends IPSModule
         }
 
         $this->RegisterVariableString('Recent', $this->Translate("Accesses"), '~HTMLBox', self::POS_RECENT);
+        $this->defaultIcon('Recent', 'Door');
         // an earlier version kept the schedules in a category, the old WebFront does not show it
         $category = @IPS_GetObjectIDByIdent('Keys', $this->InstanceID);
         if ($category !== false && IPS_CategoryExists($category)) {
@@ -87,6 +88,10 @@ class DoorstationAccess extends IPSModule
             }
         }
         $this->MaintainVariable('Reader', $this->Translate("Reader"), 1, $this->readerPresentation(), self::POS_READER, $statusVar > 0);
+        if ($statusVar > 0) {
+            // the old WebFront ignores the icon of a presentation
+            $this->defaultIcon('Reader', 'Network');
+        }
         if (IPS_VariableProfileExists(self::OLD_READER_PROFILE)) {
             IPS_DeleteVariableProfile(self::OLD_READER_PROFILE);
         }
@@ -343,6 +348,15 @@ class DoorstationAccess extends IPSModule
     {
         $statusVar = $this->ReadPropertyInteger('StatusVariable');
         return $statusVar > 0 && IPS_VariableExists($statusVar) ? trim((string) GetValue($statusVar)) : null;
+    }
+
+    // Object icon of a module variable, unless the user chose one
+    private function defaultIcon(string $ident, string $icon): void
+    {
+        $id = $this->GetIDForIdent($ident);
+        if ($id !== false && IPS_GetObject($id)['ObjectIcon'] === '') {
+            IPS_SetIcon($id, $icon);
+        }
     }
 
     // Enumeration presentation (Symcon >= 8.0): offline red, degraded yellow, online green
