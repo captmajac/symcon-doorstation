@@ -1,23 +1,38 @@
 <script src="/icons.js"></script>
 <style>
-    #dsa { font-family: inherit; color: inherit; height: 100%; box-sizing: border-box; padding: 8px 12px; overflow: auto; }
+    /* Theme colors of the tile visualization (--content-color, --accent-color); Symcon has no green/red, these stay fixed */
+    #dsa {
+        --dsa-text: var(--content-color, inherit);
+        --dsa-accent: var(--accent-color, #00CDAB);
+        --dsa-line: rgba(127, 127, 127, 0.25);
+        --dsa-line: color-mix(in srgb, var(--content-color, #7F7F7F) 20%, transparent);
+        --dsa-border: rgba(127, 127, 127, 0.5);
+        --dsa-border: color-mix(in srgb, var(--content-color, #7F7F7F) 40%, transparent);
+        --dsa-ok: #43A047;
+        --dsa-warn: #FDD835;
+        --dsa-bad: #E53935;
+        font-family: inherit; color: var(--dsa-text); height: 100%; box-sizing: border-box; padding: 8px 12px; overflow: auto;
+    }
     #dsa .head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
     #dsa .title { font-weight: 600; flex: 1; }
-    #dsa .dot { width: 10px; height: 10px; border-radius: 50%; display: none; }
-    #dsa .dot.online { display: inline-block; background: #43A047; }
-    #dsa .dot.degraded { display: inline-block; background: #FDD835; }
-    #dsa .dot.offline { display: inline-block; background: #E53935; }
-    #dsa button { font: inherit; color: inherit; background: transparent; border: 1px solid rgba(127, 127, 127, 0.5); border-radius: 6px; padding: 2px 8px; cursor: pointer; }
+    #dsa .dot { width: 10px; height: 10px; border-radius: 50%; display: none; flex: none; }
+    #dsa .dot.online { display: inline-block; background: var(--dsa-ok); }
+    #dsa .dot.degraded { display: inline-block; background: var(--dsa-warn); }
+    #dsa .dot.offline { display: inline-block; background: var(--dsa-bad); }
+    #dsa button { font: inherit; color: inherit; background: transparent; border: 1px solid var(--dsa-border); border-radius: 6px; padding: 2px 8px; cursor: pointer; }
+    #dsa button:hover, #dsa button:focus-visible { border-color: var(--dsa-accent); color: var(--dsa-accent); outline: none; }
     #dsa button.icon { width: 2.4em; padding: 2px 0; text-align: center; flex: none; }
-    #dsa input[type=text] { font: inherit; color: inherit; background: transparent; border: 1px solid rgba(127, 127, 127, 0.6); border-radius: 6px; padding: 2px 6px; min-width: 0; flex: 1; }
-    #dsa .row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid rgba(127, 127, 127, 0.25); }
+    #dsa input[type=text] { font: inherit; color: inherit; background: transparent; border: 1px solid var(--dsa-border); border-radius: 6px; padding: 2px 6px; min-width: 0; flex: 1; }
+    #dsa input[type=text]:focus { border-color: var(--dsa-accent); outline: none; }
+    #dsa input[type=checkbox] { accent-color: var(--dsa-accent); }
+    #dsa .row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid var(--dsa-line); }
     #dsa .row .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     #dsa .row .time { opacity: 0.75; white-space: nowrap; }
     #dsa .last { border-top: none; }
-    #dsa .allowed { color: #43A047; opacity: 1; }
-    #dsa .denied { color: #E53935; opacity: 1; }
+    #dsa .allowed { color: var(--dsa-ok); opacity: 1; }
+    #dsa .denied { color: var(--dsa-bad); opacity: 1; }
     #dsa .hint, #dsa .error { padding: 6px 0; }
-    #dsa .error { color: #E53935; }
+    #dsa .error { color: var(--dsa-bad); }
     body.small #dsa .older, body.small #dsa #toggle { display: none; }
 </style>
 

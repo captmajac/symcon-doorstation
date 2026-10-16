@@ -37,10 +37,15 @@ $tests['Display: status null without status variable, degraded with'] = function
     check(!str_contains($m->value('Recent'), 'degraded'), 'status in HTML box: ' . $m->value('Recent'));
 };
 
-$tests['Display: reader status as own variable with profile'] = function () {
+$tests['Display: reader status as own variable with enumeration presentation, old profile removed'] = function () {
+    IPS_CreateVariableProfile('DSA.ReaderStatus', 1);  // from an earlier version
     $m = makeAccess(['StatusVariable' => 101]);
     check($m->value('Reader') === 2, 'online: ' . json_encode($m->value('Reader')));
-    check(array_keys(TestRegistry::$profiles['DSA.ReaderStatus']['associations'] ?? []) === [0, 1, 2], 'profile');
+    $p = $m->presentations['Reader'] ?? null;
+    check(is_array($p) && $p['PRESENTATION'] === VARIABLE_PRESENTATION_ENUMERATION, json_encode($p));
+    $options = json_decode($p['OPTIONS'], true);
+    check(array_column($options, 'Value') === [0, 1, 2] && array_column($options, 'Caption') === ['Offline', 'Degraded', 'Online'], $p['OPTIONS']);
+    check(!IPS_VariableProfileExists('DSA.ReaderStatus'), 'old profile kept');
     foreach (['degraded' => 1, 'offline' => 0, ' online ' => 2, 'garbage' => 0] as $text => $expected) {
         TestRegistry::$values[101] = $text;
         $m->MessageSink(TestRegistry::$now, 101, VM_UPDATE, [$text, true, '']);

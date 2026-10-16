@@ -39,6 +39,7 @@ class TestRegistry
 
 // Values are arbitrary here; real Symcon provides them.
 const KR_READY = 10103;
+const VARIABLE_PRESENTATION_ENUMERATION = '{52D9E126-D7D2-2CBB-5E62-4CF7BA7C5D82}';
 const OM_UNREGISTER = 10402;
 const OM_CHANGENAME = 10404;
 const OM_CHILDADDED = 10412;
@@ -108,9 +109,11 @@ class IPSModule
         return $this->variables[$Ident];
     }
     public array $positions = [];   // Ident => position (MaintainVariable)
+    public array $presentations = []; // Ident => profile name or presentation array (MaintainVariable)
     protected function MaintainVariable($Ident, $Name, $Type, $Profile, $Position, $Keep)
     {
         $this->positions[$Ident] = $Position;
+        $this->presentations[$Ident] = $Profile;
         if (!$Keep) {
             unset($this->variables[$Ident]);
         } elseif (!isset($this->variables[$Ident])) {
@@ -137,14 +140,8 @@ class IPSModule
 }
 
 function IPS_VariableProfileExists($Name) { return isset(TestRegistry::$profiles[$Name]); }
-function IPS_CreateVariableProfile($Name, $Type) { TestRegistry::$profiles[$Name] = ['type' => $Type, 'icon' => '', 'associations' => []]; return true; }
-function IPS_SetVariableProfileIcon($Name, $Icon) { TestRegistry::$profiles[$Name]['icon'] = $Icon; return true; }
-function IPS_SetVariableProfileAssociation($Name, $Value, $Text, $Icon, $Color)
-{
-    TestRegistry::$profiles[$Name]['associations'][$Value] = [$Text, $Icon, $Color];
-    ksort(TestRegistry::$profiles[$Name]['associations']);
-    return true;
-}
+function IPS_CreateVariableProfile($Name, $Type) { TestRegistry::$profiles[$Name] = ['type' => $Type]; return true; }
+function IPS_DeleteVariableProfile($Name) { unset(TestRegistry::$profiles[$Name]); return true; }
 
 function IPS_GetKernelRunlevel() { return TestRegistry::$runlevel; }
 function IPS_VariableExists($ID) { return isset(TestRegistry::$variables[$ID]); }

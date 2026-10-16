@@ -5,8 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Tile preview</title>
 <style>
-    body { margin: 0; font-family: -apple-system, sans-serif; background: #1b2531; color: #e8eef5; }
-    body.light { background: #f3f5f7; color: #1b2531; }
+    /* theme variables as the Symcon tile visualization sets them */
+    body { margin: 0; font-family: -apple-system, sans-serif; --accent-color: #00cdab; --content-color: #e8eef5; --card-color: #1b2531; background: var(--card-color); color: var(--content-color); }
+    body.light { --content-color: #000000; --card-color: #ffffff; }
     #log { font: 12px monospace; padding: 8px; opacity: 0.8; white-space: pre-wrap; }
     #tile { height: 340px; margin: 8px; border: 1px solid #556; border-radius: 10px; }
     #bar { padding: 8px; display: flex; gap: 8px; }

@@ -17,7 +17,7 @@ class DoorstationAccess extends IPSModule
     const POS_RECENT = 10;
     const POS_KEYS = 20;
     const POS_READER = 30;
-    const READER_PROFILE = 'DSA.ReaderStatus';
+    const OLD_READER_PROFILE = 'DSA.ReaderStatus';  // earlier versions; now a presentation
     const READER_VALUES = ['offline' => 0, 'degraded' => 1, 'online' => 2];
 
     public function Create()
@@ -86,10 +86,10 @@ class DoorstationAccess extends IPSModule
                 IPS_SetPosition($event, self::POS_KEYS);
             }
         }
-        if ($statusVar > 0) {
-            $this->registerReaderProfile();
+        $this->MaintainVariable('Reader', $this->Translate("Reader"), 1, $this->readerPresentation(), self::POS_READER, $statusVar > 0);
+        if (IPS_VariableProfileExists(self::OLD_READER_PROFILE)) {
+            IPS_DeleteVariableProfile(self::OLD_READER_PROFILE);
         }
-        $this->MaintainVariable('Reader', $this->Translate("Reader"), 1, self::READER_PROFILE, self::POS_READER, $statusVar > 0);
 
         $status = $this->configStatus();
         $this->SetStatus($status);
@@ -345,16 +345,21 @@ class DoorstationAccess extends IPSModule
         return $statusVar > 0 && IPS_VariableExists($statusVar) ? trim((string) GetValue($statusVar)) : null;
     }
 
-    private function registerReaderProfile(): void
+    // Enumeration presentation (Symcon >= 8.0): offline red, degraded yellow, online green
+    private function readerPresentation(): array
     {
-        if (IPS_VariableProfileExists(self::READER_PROFILE)) {
-            return;
-        }
-        IPS_CreateVariableProfile(self::READER_PROFILE, 1);
-        IPS_SetVariableProfileIcon(self::READER_PROFILE, 'Network');
-        IPS_SetVariableProfileAssociation(self::READER_PROFILE, 0, $this->Translate("Offline"), '', 0xE53935);
-        IPS_SetVariableProfileAssociation(self::READER_PROFILE, 1, $this->Translate("Degraded"), '', 0xFDD835);
-        IPS_SetVariableProfileAssociation(self::READER_PROFILE, 2, $this->Translate("Online"), '', 0x43A047);
+        $option = fn (int $value, string $caption, int $color) => [
+            'Value' => $value, 'Caption' => $caption, 'IconActive' => false, 'IconValue' => '', 'Color' => $color,
+        ];
+        return [
+            'PRESENTATION' => VARIABLE_PRESENTATION_ENUMERATION,
+            'ICON'         => 'network-wired',
+            'OPTIONS'      => json_encode([
+                $option(0, $this->Translate("Offline"), 0xE53935),
+                $option(1, $this->Translate("Degraded"), 0xFDD835),
+                $option(2, $this->Translate("Online"), 0x43A047),
+            ]),
+        ];
     }
 
     // Data for the tile, see spec 7.1
