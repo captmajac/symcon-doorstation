@@ -77,6 +77,10 @@ class IPSModule
     protected function ReadAttributeString($Name) { return (string) $this->attributes[$Name]; }
     protected function WriteAttributeString($Name, $Value) { $this->attributes[$Name] = $Value; }
 
+    public array $timers = [];      // Name => ['script' => string, 'interval' => ms]
+    protected function RegisterTimer($Name, $Interval, $Script) { $this->timers[$Name] = ['script' => $Script, 'interval' => $Interval]; }
+    protected function SetTimerInterval($Name, $Interval) { $this->timers[$Name]['interval'] = $Interval; }
+
     protected function RegisterMessage($SenderID, $Message) { $this->messages[] = [$SenderID, $Message]; }
     protected function UnregisterMessage($SenderID, $Message)
     {

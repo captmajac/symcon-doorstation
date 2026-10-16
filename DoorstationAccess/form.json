@@ -1,13 +1,44 @@
 {
     "elements": [
-        { "type": "SelectVariable", "name": "ReadVariable", "caption": "Read variable (doorstation/rfid/read)" },
-        { "type": "SelectVariable", "name": "StatusVariable", "caption": "Status variable (doorstation/rfid/status, optional)" },
-        { "type": "SelectScript", "name": "DoorScript", "caption": "Door opener script (optional)" }
+        {
+            "type": "SelectVariable",
+            "name": "ReadVariable",
+            "caption": "RFID key variable (doorstation/rfid/read)"
+        },
+        {
+            "type": "SelectVariable",
+            "name": "StatusVariable",
+            "caption": "RFID reader status variable (doorstation/rfid/status, optional)"
+        },
+        {
+            "type": "SelectScript",
+            "name": "DoorScript",
+            "caption": "Script to run on access (optional)"
+        },
+        {
+            "type": "NumberSpinner",
+            "name": "ListLength",
+            "caption": "Entries in the access list",
+            "minimum": 1,
+            "maximum": 10
+        }
     ],
     "actions": [],
     "status": [
-        { "code": 201, "icon": "error", "caption": "Read variable missing" },
-        { "code": 202, "icon": "error", "caption": "Door opener script not found" },
-        { "code": 203, "icon": "error", "caption": "Read variable is not a string" }
+        {
+            "code": 201,
+            "icon": "error",
+            "caption": "RFID key variable missing"
+        },
+        {
+            "code": 202,
+            "icon": "error",
+            "caption": "Script to run on access not found"
+        },
+        {
+            "code": 203,
+            "icon": "error",
+            "caption": "RFID key variable is not a string"
+        }
     ]
 }

@@ -74,11 +74,10 @@ $tests['Display: HTML box colors by result'] = function () {
     readLogged($m, '04a1b2c3d4e5f6');
     readLogged($m, 'c0ffee42');
     $html = $m->value('Recent');
-    $time = date('d.m.Y H:i', TestRegistry::$now);
+    $time = 'Today ' . date('H:i', TestRegistry::$now);
     check(str_contains($html, '<tr><td>Card</td><td style="text-align:right;color:#2E7D32">' . $time . '</td></tr>'), 'name plain, time green right: ' . $html);
     check(preg_match('/<tr title="unknown"><td>Unknown \(04a1b2c3d4e5f6\)<\/td><td style="text-align:right;color:#C62828">/', $html) === 1, 'red: ' . $html);
     check(str_contains($html, 'Unknown (04a1b2c3d4e5f6)'), 'unknown name');
-    check(str_contains($html, date('d.m.Y H:i', TestRegistry::$now)), 'date');
 };
 
 $tests['Display: renaming the event updates HTML box and tile'] = function () {
@@ -132,4 +131,35 @@ $tests['Tile: module.html never puts data into innerHTML, uses the SDK calls'] =
     foreach (['function handleMessage', "requestAction('CreateKey'", "requestAction('RenameKey'", "requestAction('SetKeyActive'", "requestAction('DeleteKey'", 'openObject(', 'textContent'] as $needle) {
         check(str_contains($html, $needle), "missing $needle");
     }
+};
+
+$tests['Display: list length 1 to 10 from the configuration'] = function () {
+    $m = makeAccess(['ListLength' => 3]);
+    readsOf($m, ['11111111', '22222222', '33333333', '44444444']);
+    check(count(lastPayload($m)['recent']) === 3, json_encode(lastPayload($m)['recent']));
+    $m = makeAccess(['ListLength' => 50]);
+    readsOf($m, array_map(fn ($i) => sprintf('%08x', $i), range(1, 12)));
+    check(count(lastPayload($m)['recent']) === 10, 'not capped at 10');
+    $m = makeAccess(['ListLength' => 0]);
+    readLogged($m, 'c0ffee42');
+    check(count(lastPayload($m)['recent']) === 1, 'not at least 1');
+};
+
+$tests['Display: HTML box shows today like the tile, other days without year'] = function () {
+    $m = makeAccess();
+    readLogged($m, 'c0ffee42');
+    TestRegistry::$now += 86400;
+    readLogged($m, '0d15ea5e');
+    $html = $m->value('Recent');
+    check(str_contains($html, '>Today ' . date('H:i', TestRegistry::$now) . '<'), 'today: ' . $html);
+    check(str_contains($html, '>' . date('d.m. H:i', TestRegistry::$now - 86401) . '<'), 'yesterday: ' . $html);
+};
+
+$tests['Display: timer refreshes at midnight so "today" stays right'] = function () {
+    $m = makeAccess();
+    $midnight = (new DateTimeImmutable('@' . TestRegistry::$now))->setTimezone(new DateTimeZone(date_default_timezone_get()))->modify('tomorrow')->getTimestamp();
+    check(($m->timers['Midnight']['interval'] ?? 0) === ($midnight - TestRegistry::$now + 1) * 1000, json_encode($m->timers));
+    $before = count($m->visu);
+    $m->RequestAction('Midnight', '');
+    check(count($m->visu) === $before + 1 && lastError($m) === null, 'no refresh');
 };

@@ -4,7 +4,7 @@ IP-Symcon modules for the [doorstation](https://github.com/captmajac/doorstation
 
 ## Doorstation Access (`DoorstationAccess`)
 
-Decides on access for RFID cards, AirTags and Apple Home Key reported by the doorstation service `rfid`, starts your door opener script (optional) and shows the last accesses.
+Decides on access for RFID cards, AirTags and Apple Home Key reported by the doorstation service `rfid`, runs your script on access (optional, e.g. to open the door) and shows the last accesses.
 
 - Every key is a **weekly schedule** below the instance (one group per weekday): the schedule name is the display name, action 1 is *Access*, action 2 *Locked*. An inactive schedule locks the key.
 - Unknown keys appear in the list. Give them a name in the tile and they are unlocked (all week, restrict the schedule as you like).
@@ -24,9 +24,10 @@ Decides on access for RFID cards, AirTags and Apple Home Key reported by the doo
 
 | Field | Content |
 |---|---|
-| Read variable | MQTT variable of `doorstation/rfid/read`: the full JSON `{"ts","type","id"}` (recommended, reads older than 5 s are discarded) or only the ID (no age check, type from the length) |
-| Status variable | MQTT variable of `doorstation/rfid/status` (optional, shown as a dot in the tile and as variable *Reader*) |
-| Door opener script | optional, runs when access is granted; without it the module only decides and logs |
+| RFID key variable | MQTT variable of `doorstation/rfid/read`: the full JSON `{"ts","type","id"}` (recommended, reads older than 5 s are discarded) or only the ID (no age check, type from the length) |
+| RFID reader status variable | MQTT variable of `doorstation/rfid/status` (optional, shown as a dot in the tile and as variable *Reader*) |
+| Script to run on access | optional, runs when access is granted (e.g. opens the door); without it the module only decides and logs |
+| Entries in the access list | 1 to 10 (default 5), for tile and HTML box |
 
 
 Reads older than 5 seconds (or more than 5 seconds in the future, or without a time zone) are discarded.
@@ -37,7 +38,7 @@ Reads older than 5 seconds (or more than 5 seconds in the future, or without a t
 2. Tap **+**, enter a name, *Create*. The schedule is created with access all week.
 3. Tap the clock to edit the schedule. The gear (*Manage keys*) lists all keys: rename, switch active, delete.
 
-### Door opener script
+### Script to run on access
 
 The script gets these parameters in `$_IPS`:
 

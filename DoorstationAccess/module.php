@@ -28,11 +28,15 @@ class DoorstationAccess extends IPSModule
         $this->RegisterPropertyInteger('ReadVariable', 0);
         $this->RegisterPropertyInteger('StatusVariable', 0);
         $this->RegisterPropertyInteger('DoorScript', 0);
+        $this->RegisterPropertyInteger('ListLength', 5);
 
         // last decisions [{ts, id, result}], newest first
         $this->RegisterAttributeString('Decisions', '[]');
         // last processed read "ts|id"
         $this->RegisterAttributeString('LastRead', '');
+
+        // "today" in the list changes at midnight
+        $this->RegisterTimer('Midnight', 0, 'IPS_RequestAction($_IPS[\'TARGET\'], "Midnight", "");');
 
         $this->SetVisualizationType(1);
     }
@@ -161,6 +165,10 @@ class DoorstationAccess extends IPSModule
     // Key management from the tile; value is JSON {"id", "name"|"active"}
     public function RequestAction($Ident, $Value)
     {
+        if ($Ident === 'Midnight') {
+            $this->refresh();
+            return;
+        }
         $error = $this->manageKey((string) $Ident, json_decode((string) $Value, true));
         if ($error !== null) {
             $this->UpdateVisualizationValue(json_encode(['error' => $error]));
@@ -243,7 +251,8 @@ class DoorstationAccess extends IPSModule
             $event = $this->keyEvent($id);
             return $event > 0 ? IPS_GetObject($event)['ObjectName'] : null;
         };
-        return RecentList::build(new DecisionLog($this->ReadAttributeString('Decisions')), $nameOf);
+        $limit = max(1, min(10, $this->ReadPropertyInteger('ListLength')));
+        return RecentList::build(new DecisionLog($this->ReadAttributeString('Decisions')), $nameOf, $limit);
     }
 
     private function handleRead(string $raw): void
@@ -293,7 +302,7 @@ class DoorstationAccess extends IPSModule
         }
 
         if ($result === 'allowed' && $this->ReadPropertyInteger('DoorScript') === 0) {
-            $this->LogMessage(sprintf($this->Translate("Access granted for %s, no door opener script"), $name), KL_MESSAGE);
+            $this->LogMessage(sprintf($this->Translate("Access granted for %s, no script to run on access"), $name), KL_MESSAGE);
         } elseif ($result === 'allowed') {
             IPS_RunScriptEx($this->ReadPropertyInteger('DoorScript'), [
                 'KEY_ID'   => $id,
@@ -301,7 +310,7 @@ class DoorstationAccess extends IPSModule
                 'KEY_TYPE' => $read['type'],
                 'TS'       => $read['ts'],
             ]);
-            $this->LogMessage(sprintf($this->Translate("Door opener started for %s"), $name), KL_MESSAGE);
+            $this->LogMessage(sprintf($this->Translate("Script to run on access started for %s"), $name), KL_MESSAGE);
         }
         $this->refresh();
     }
@@ -389,7 +398,7 @@ class DoorstationAccess extends IPSModule
                 $entry['result'] === 'allowed' => ';color:#2E7D32',
                 default                        => ';color:#C62828',
             };
-            $cells = '<td>' . htmlspecialchars($name) . '</td><td style="text-align:right' . $color . '">' . date('d.m.Y H:i', $entry['time']) . '</td>';
+            $cells = '<td>' . htmlspecialchars($name) . '</td><td style="text-align:right' . $color . '">' . $this->formatTime($entry['time']) . '</td>';
             if ($entry['result'] === null || $entry['result'] === 'allowed') {
                 $html .= "<tr>$cells</tr>";
             } else {
@@ -400,9 +409,20 @@ class DoorstationAccess extends IPSModule
         return $html . '</table>';
     }
 
+    // As in the tile: "Today 18:08" or "15.10. 18:08"
+    private function formatTime(int $time): string
+    {
+        if (date('Y-m-d', $time) === date('Y-m-d', $this->now())) {
+            return $this->Translate("Today") . ' ' . date('H:i', $time);
+        }
+        return date('d.m. H:i', $time);
+    }
+
     // Updates HTML box and tile
     private function refresh(): void
     {
+        $now = (new DateTimeImmutable('@' . $this->now()))->setTimezone(new DateTimeZone(date_default_timezone_get()));
+        $this->SetTimerInterval('Midnight', ($now->modify('tomorrow')->getTimestamp() - $this->now() + 1) * 1000);
         $payload = $this->payload();
         $this->SetValue('Recent', $this->renderHtml($payload));
         if ($payload['status'] !== null) {

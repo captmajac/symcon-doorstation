@@ -15,7 +15,7 @@ $tests['Read: known key, schedule open, script gets KEY_ID, KEY_NAME, KEY_TYPE, 
     $ts = json_decode(GetValue(100), true)['ts'];
     check(TestRegistry::$scriptRuns === [[300, ['KEY_ID' => '1a2b3c4d5e6f7a8b', 'KEY_NAME' => 'Alex iPhone', 'KEY_TYPE' => 'homekey', 'TS' => $ts]]], json_encode(TestRegistry::$scriptRuns));
     check(decisions($m)[0] === ['ts' => $ts, 'id' => '1a2b3c4d5e6f7a8b', 'result' => 'allowed', 'type' => 'homekey', 'time' => TestRegistry::$now], json_encode(decisions($m)));
-    check(in_array('Door opener started for Alex iPhone', TestRegistry::$log), json_encode(TestRegistry::$log));
+    check(in_array('Script to run on access started for Alex iPhone', TestRegistry::$log), json_encode(TestRegistry::$log));
 };
 
 $tests['Read: upper-case ID matches lower-case ident'] = function () {
@@ -112,7 +112,7 @@ $tests['Read: allowed without script logs, does not run anything'] = function ()
     addKey('c0ffee42', 'Card');
     read($m, 'c0ffee42');
     check(TestRegistry::$scriptRuns === [], 'ran');
-    check(in_array('Access granted for Card, no door opener script', TestRegistry::$log), json_encode(TestRegistry::$log));
+    check(in_array('Access granted for Card, no script to run on access', TestRegistry::$log), json_encode(TestRegistry::$log));
     check(decisions($m)[0]['result'] === 'allowed', json_encode(decisions($m)));
 };
 
