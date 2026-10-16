@@ -76,8 +76,7 @@ $tests['Display: HTML box colors by result'] = function () {
     $html = $m->value('Recent');
     $time = 'Today ' . date('H:i', TestRegistry::$now);
     check(str_contains($html, '<tr><td>Card</td><td style="text-align:right;color:#2E7D32">' . $time . '</td></tr>'), 'name plain, time green right: ' . $html);
-    check(preg_match('/<tr title="unknown"><td>Unknown \(04a1b2c3d4e5f6\)<\/td><td style="text-align:right;color:#C62828">/', $html) === 1, 'red: ' . $html);
-    check(str_contains($html, 'Unknown (04a1b2c3d4e5f6)'), 'unknown name');
+    check(preg_match('/<tr title="unknown"><td>04a1b2c3d4e5f6<\/td><td style="text-align:right;color:#C62828">/', $html) === 1, 'unknown shows its ID: ' . $html);
 };
 
 $tests['Display: renaming the event updates HTML box and tile'] = function () {
@@ -122,6 +121,12 @@ $tests['Tile: name entry per row, not per ID (same unknown key twice in the list
     check(!str_contains($html, 'editing = entry.id') && !str_contains($html, 'editing = key.id'), 'still by ID');
 };
 
+$tests['Tile: unknown key shows its (shortened) ID instead of "Unknown"'] = function () {
+    $html = file_get_contents(__DIR__ . '/../DoorstationAccess/module.html');
+    check(!str_contains($html, "translate('Unknown')"), 'still Unknown');
+    check(str_contains($html, 'shortId(entry.id)'), 'ID not shown');
+};
+
 $tests['Tile: module.html never puts data into innerHTML, uses the SDK calls'] = function () {
     $html = file_get_contents(__DIR__ . '/../DoorstationAccess/module.html');
     preg_match_all('/innerHTML\s*=\s*([^;]*)/', $html, $m);
@@ -162,4 +167,17 @@ $tests['Display: timer refreshes at midnight so "today" stays right'] = function
     $before = count($m->visu);
     $m->RequestAction('Midnight', '');
     check(count($m->visu) === $before + 1 && lastError($m) === null, 'no refresh');
+};
+
+$tests['Display: default list length 4 (tile without scrolling)'] = function () {
+    $m = makeAccess();
+    readsOf($m, ['11111111', '22222222', '33333333', '44444444', '55555555']);
+    check(count(lastPayload($m)['recent']) === 4, (string) count(lastPayload($m)['recent']));
+};
+
+$tests['Display: long unknown ID shortened in the HTML box'] = function () {
+    $m = makeAccess();
+    $id = str_repeat('ab', 32);
+    readLogged($m, $id);
+    check(str_contains($m->value('Recent'), '<td>' . substr($id, 0, 16) . '…</td>'), $m->value('Recent'));
 };

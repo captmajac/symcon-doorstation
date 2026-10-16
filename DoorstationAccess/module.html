@@ -75,6 +75,10 @@
         return String(d.getDate()).padStart(2, '0') + '.' + String(d.getMonth() + 1).padStart(2, '0') + '. ' + hm;
     }
 
+    function shortId(id) {
+        return id.length > 16 ? id.slice(0, 16) + '…' : id;
+    }
+
     function keyById(id) {
         return state.keys.find((k) => k.id === id) || null;
     }
@@ -109,7 +113,8 @@
             nameInput(entry.id, '', 'CreateKey').forEach((n) => row.appendChild(n));
             return row;
         }
-        const name = el('span', 'name', entry.name !== null ? entry.name : translate('Unknown'));
+        // unknown keys by ID so several can be told apart
+        const name = el('span', 'name', entry.name !== null ? entry.name : shortId(entry.id));
         name.title = entry.id;
         row.appendChild(name);
         // only the time shows the result

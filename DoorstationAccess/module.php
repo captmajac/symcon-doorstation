@@ -28,7 +28,7 @@ class DoorstationAccess extends IPSModule
         $this->RegisterPropertyInteger('ReadVariable', 0);
         $this->RegisterPropertyInteger('StatusVariable', 0);
         $this->RegisterPropertyInteger('DoorScript', 0);
-        $this->RegisterPropertyInteger('ListLength', 5);
+        $this->RegisterPropertyInteger('ListLength', 4);
 
         // last decisions [{ts, id, result}], newest first
         $this->RegisterAttributeString('Decisions', '[]');
@@ -391,7 +391,8 @@ class DoorstationAccess extends IPSModule
         ];
         $html = '<table style="width:100%">';
         foreach ($payload['recent'] as $entry) {
-            $name = $entry['name'] ?? sprintf($this->Translate("Unknown (%s)"), $entry['id']);
+            // unknown keys by ID so several can be told apart; long Home Key/UID IDs shortened
+            $name = $entry['name'] ?? (strlen($entry['id']) > 16 ? substr($entry['id'], 0, 16) . '…' : $entry['id']);
             // only the time is colored, on the cell itself as the WebFront styles td
             $color = match (true) {
                 $entry['result'] === null      => '',

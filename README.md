@@ -27,14 +27,14 @@ Decides on access for RFID cards, AirTags and Apple Home Key reported by the doo
 | RFID key variable | MQTT variable of `doorstation/rfid/read`: the full JSON `{"ts","type","id"}` (recommended, reads older than 5 s are discarded) or only the ID (no age check, type from the length) |
 | RFID reader status variable | MQTT variable of `doorstation/rfid/status` (optional, shown as a dot in the tile and as variable *Reader*) |
 | Script to run on access | optional, runs when access is granted (e.g. opens the door); without it the module only decides and logs |
-| Entries in the access list | 1 to 10 (default 5), for tile and HTML box |
+| Entries in the access list | 1 to 10 (default 4, fits the tile without scrolling), for tile and HTML box |
 
 
 Reads older than 5 seconds (or more than 5 seconds in the future, or without a time zone) are discarded.
 
 ### Keys
 
-1. Hold the card, AirTag or iPhone to the reader: it appears as *Unknown* in the tile.
+1. Hold the card, AirTag or iPhone to the reader: it appears with its ID in the tile.
 2. Tap **+**, enter a name, *Create*. The schedule is created with access all week.
 3. Tap the clock to edit the schedule. The gear (*Manage keys*) lists all keys: rename, switch active, delete.
 
