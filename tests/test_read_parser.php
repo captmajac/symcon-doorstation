@@ -39,7 +39,7 @@ $tests['Parser: unreadable ts stale'] = function () {
 };
 
 $tests['Parser: no JSON'] = function () {
-    check(ReadParser::parse('04A1B2C3D4E5F6', TestRegistry::$now) === ['ok' => false, 'error' => 'invalid_json'], 'not invalid_json');
+    check(ReadParser::parse('hello world', TestRegistry::$now) === ['ok' => false, 'error' => 'invalid_json'], 'not invalid_json');
 };
 
 $tests['Parser: missing id or ts'] = function () {
@@ -67,4 +67,11 @@ $tests['Parser: normalizeId'] = function () {
     check(ReadParser::normalizeId(' C0FFEE42 ') === null, 'whitespace accepted');
     check(ReadParser::normalizeId('C0FFEE42') === 'c0ffee42', 'upper');
     check(ReadParser::normalizeId(str_repeat('A', 64)) === str_repeat('a', 64), '64');
+};
+
+$tests['Parser: bare ID, ts from update time, 16 hex = homekey'] = function () {
+    $r = ReadParser::parse(" 6850185941E3332E\n", TestRegistry::$now, 1000);
+    check($r === ['ok' => true, 'id' => '6850185941e3332e', 'type' => 'homekey', 'ts' => tsAt(1000), 'stale' => false], json_encode($r));
+    check(ReadParser::parse('B3C06FA5', TestRegistry::$now, 1000)['type'] === 'card', 'card');
+    check(ReadParser::parse('B3C0', TestRegistry::$now, 1000)['error'] === 'invalid_json', 'short ID accepted');
 };

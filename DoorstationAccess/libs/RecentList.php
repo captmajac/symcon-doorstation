@@ -15,7 +15,7 @@ class RecentList
         }
         $list = [];
         foreach ($rows as $row) {
-            $read = ReadParser::parse((string) $row['Value'], 0);
+            $read = ReadParser::parse((string) $row['Value'], 0, (int) $row['TimeStamp']);
             if (!$read['ok']) {
                 continue;
             }

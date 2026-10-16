@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-// Parses a doorstation/rfid/read message {"ts","type","id"}.
+// Parses a doorstation/rfid/read message {"ts","type","id"} or a bare ID (variable that holds only "id").
 class ReadParser
 {
     const MAX_AGE = 5;  // seconds, both directions
@@ -15,11 +15,23 @@ class ReadParser
     }
 
     // ['ok'=>true,'id','type','ts','stale'] or ['ok'=>false,'error'=>'invalid_json'|'missing_field'|'invalid_id']
-    public static function parse(string $raw, int $now): array
+    // $updated: update time of the variable, ts of a bare ID (it has no age check)
+    public static function parse(string $raw, int $now, ?int $updated = null): array
     {
         $data = json_decode($raw, true);
         if (!is_array($data)) {
-            return ['ok' => false, 'error' => 'invalid_json'];
+            $id = self::normalizeId(trim($raw));
+            if ($id === null) {
+                return ['ok' => false, 'error' => 'invalid_json'];
+            }
+            return [
+                'ok'    => true,
+                'id'    => $id,
+                // Home Key IDs have 8 bytes, card UIDs 4, 7 or 10
+                'type'  => strlen($id) === 16 ? 'homekey' : 'card',
+                'ts'    => date('Y-m-d\TH:i:s.vP', $updated ?? $now),
+                'stale' => false,
+            ];
         }
         if (!is_string($data['ts'] ?? null) || !is_string($data['id'] ?? null)) {
             return ['ok' => false, 'error' => 'missing_field'];

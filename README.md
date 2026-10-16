@@ -24,7 +24,7 @@ Decides on access for RFID cards, AirTags and Apple Home Key reported by the doo
 
 | Field | Content |
 |---|---|
-| Read variable | MQTT variable of `doorstation/rfid/read` (JSON `{"ts","type","id"}`) |
+| Read variable | MQTT variable of `doorstation/rfid/read`: the full JSON `{"ts","type","id"}` (recommended, reads older than 5 s are discarded) or only the ID (no age check, type from the length) |
 | Status variable | MQTT variable of `doorstation/rfid/status` (optional, shown as a dot in the tile and as variable *Reader*) |
 | Door opener script | optional, runs when access is granted; without it the module only decides and logs |
 

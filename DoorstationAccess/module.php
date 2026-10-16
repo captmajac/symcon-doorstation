@@ -247,7 +247,7 @@ class DoorstationAccess extends IPSModule
 
     private function handleRead(string $raw): void
     {
-        $read = ReadParser::parse($raw, $this->now());
+        $read = ReadParser::parse($raw, $this->now(), IPS_GetVariable($this->ReadPropertyInteger('ReadVariable'))['VariableUpdated']);
         if (!$read['ok']) {
             $this->LogMessage(sprintf($this->Translate("Read ignored: %s, value: %s"), $read['error'], $raw), KL_WARNING);
             return;

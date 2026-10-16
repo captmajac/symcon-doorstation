@@ -53,9 +53,9 @@ $tests['List: current older than first row ignored'] = function () {
     check(array_column($list, 'time') === [5], json_encode($list));
 };
 
-$tests['List: rows without JSON, empty or without id are skipped'] = function () {
+$tests['List: rows that are neither JSON nor an ID, empty or without id are skipped'] = function () {
     $rows = [
-        ['TimeStamp' => 9, 'Value' => '04A1B2C3D4E5F6'],
+        ['TimeStamp' => 9, 'Value' => 'hello'],
         ['TimeStamp' => 8, 'Value' => ''],
         ['TimeStamp' => 7, 'Value' => '{"ts":"x"}'],
         row(6, 'c0ffee42'),

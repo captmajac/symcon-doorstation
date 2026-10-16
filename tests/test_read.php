@@ -64,10 +64,10 @@ $tests['Read: same ts and id twice runs the script once'] = function () {
 
 $tests['Read: no JSON, no script, no decision'] = function () {
     $m = makeAccess();
-    TestRegistry::$values[100] = '04A1B2C3D4E5F6';
-    $m->MessageSink(TestRegistry::$now, 100, VM_UPDATE, ['04A1B2C3D4E5F6', true, '']);
+    TestRegistry::$values[100] = 'hello';
+    $m->MessageSink(TestRegistry::$now, 100, VM_UPDATE, ['hello', true, '']);
     check(TestRegistry::$scriptRuns === [] && decisions($m) === [], 'reacted');
-    check(in_array('Read ignored: invalid_json, value: 04A1B2C3D4E5F6', TestRegistry::$log), json_encode(TestRegistry::$log));
+    check(in_array('Read ignored: invalid_json, value: hello', TestRegistry::$log), json_encode(TestRegistry::$log));
 };
 
 $tests['Read: ignored value is logged in full'] = function () {
@@ -114,4 +114,36 @@ $tests['Read: allowed without script logs, does not run anything'] = function ()
     check(TestRegistry::$scriptRuns === [], 'ran');
     check(in_array('Access granted for Card, no door opener script', TestRegistry::$log), json_encode(TestRegistry::$log));
     check(decisions($m)[0]['result'] === 'allowed', json_encode(decisions($m)));
+};
+
+// MQTT variable that holds only the ID (e.g. a device that extracts "id")
+function readBare(DoorstationAccess $m, string $id): void
+{
+    TestRegistry::$archiveID = 50;
+    TestRegistry::$logging[100] = true;
+    TestRegistry::$archive[100] ??= [];
+    TestRegistry::$now++;
+    TestRegistry::$values[100] = $id;
+    TestRegistry::$variables[100]['VariableUpdated'] = TestRegistry::$now;
+    $m->MessageSink(TestRegistry::$now, 100, VM_UPDATE, [$id, true, '']);
+    array_unshift(TestRegistry::$archive[100], ['TimeStamp' => TestRegistry::$now, 'Value' => $id]);
+}
+
+$tests['Read: bare ID opens, type from length, shown with result'] = function () {
+    $m = makeAccess();
+    addKey('6850185941e3332e', 'Alex iPhone');
+    readBare($m, 'B3C06FA5');
+    readBare($m, '6850185941E3332E');
+    check(count(TestRegistry::$scriptRuns) === 1 && TestRegistry::$scriptRuns[0][1]['KEY_TYPE'] === 'homekey', json_encode(TestRegistry::$scriptRuns));
+    $recent = lastPayload($m)['recent'];
+    check($recent[0]['name'] === 'Alex iPhone' && $recent[0]['result'] === 'allowed' && $recent[0]['type'] === 'homekey', json_encode($recent));
+    check($recent[1]['id'] === 'b3c06fa5' && $recent[1]['result'] === 'unknown' && $recent[1]['type'] === 'card', json_encode($recent));
+};
+
+$tests['Read: bare ID twice in the same second counts once'] = function () {
+    $m = makeAccess();
+    addKey('b3c06fa5', 'Card');
+    readBare($m, 'B3C06FA5');
+    $m->MessageSink(TestRegistry::$now, 100, VM_UPDATE, ['B3C06FA5', true, 'B3C06FA5']);
+    check(count(TestRegistry::$scriptRuns) === 1, 'ran ' . count(TestRegistry::$scriptRuns));
 };
