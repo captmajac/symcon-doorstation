@@ -53,7 +53,7 @@ function readsOf(DoorstationAccess $m, array $ids): void
     }
 }
 
-function lastError(DoorstationAccess $m): ?string
+function lastError(IPSModule $m): ?string
 {
     $last = json_decode((string) end($m->visu), true);
     return $last['error'] ?? null;
@@ -66,7 +66,7 @@ function readLogged(DoorstationAccess $m, string $id, string $type = 'card'): vo
     read($m, $id, 0, $type);
 }
 
-function lastPayload(DoorstationAccess $m): array
+function lastPayload(IPSModule $m): array
 {
     foreach (array_reverse($m->visu) as $v) {
         $data = json_decode($v, true);
@@ -75,4 +75,45 @@ function lastPayload(DoorstationAccess $m): array
         }
     }
     return [];
+}
+
+// Bell module with a test clock
+class TestBell extends DoorstationBell
+{
+    protected function now(): int { return TestRegistry::$now; }
+}
+
+// Instance 3: bell 400, command 401, call target 402, motion 403, mail flap 404, mailbox door 405 (all strings);
+// scripts 500 (ring), 501 (motion), 502 (notification)
+function makeBell(array $props = []): TestBell
+{
+    foreach ([400 => '', 401 => '', 402 => '**701', 403 => 'idle', 404 => 'closed', 405 => 'closed'] as $id => $value) {
+        TestRegistry::$variables[$id] ??= ['VariableType' => 3, 'VariableUpdated' => 0];
+        TestRegistry::$values[$id] ??= $value;
+    }
+    array_push(TestRegistry::$scripts, 500, 501, 502);
+    $m = new TestBell(3);
+    $m->Create();
+    $m->properties = array_merge($m->properties, ['RingVariable' => 400, 'CommandVariable' => 401, 'CallTarget' => '**701'], $props);
+    $m->ApplyChanges();
+    return $m;
+}
+
+// Variable $var of the bell module gets $value (VM_UPDATE as Symcon sends it: value, changed, old value)
+function update(DoorstationBell $m, int $var, $value): void
+{
+    $old = TestRegistry::$values[$var] ?? '';
+    TestRegistry::$values[$var] = $value;
+    TestRegistry::$variables[$var]['VariableUpdated'] = TestRegistry::$now;
+    $m->MessageSink(TestRegistry::$now, $var, VM_UPDATE, [$value, $value !== $old, $old]);
+}
+
+// Options of an enumeration presentation as [value => caption]
+function enumCaptions($presentation): array
+{
+    $out = [];
+    foreach (json_decode($presentation['OPTIONS'], true) as $o) {
+        $out[json_encode($o['Value'])] = $o['Caption'];
+    }
+    return $out;
 }

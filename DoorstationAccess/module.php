@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/../libs/TimeFormat.php';
 require_once __DIR__ . '/libs/ReadParser.php';
 require_once __DIR__ . '/libs/ScheduleEvaluator.php';
 require_once __DIR__ . '/libs/DecisionLog.php';
@@ -432,10 +433,7 @@ class DoorstationAccess extends IPSModule
     // As in the tile: "Today 18:08" or "15.10. 18:08"
     private function formatTime(int $time): string
     {
-        if (date('Y-m-d', $time) === date('Y-m-d', $this->now())) {
-            return $this->Translate("Today") . ' ' . date('H:i', $time);
-        }
-        return date('d.m. H:i', $time);
+        return TimeFormat::short($time, $this->now(), $this->Translate("Today"));
     }
 
     // Updates HTML box and tile

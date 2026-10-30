@@ -60,13 +60,63 @@ IPS_LogMessage('Door', 'Opening for ' . $_IPS['KEY_NAME']);
 
 Below the instance, in this order: *Accesses* (HTML box with the last accesses), the schedules, and *Reader* (Offline / Degraded / Online, only when a status variable is selected). The schedules can be edited there as usual; naming new keys works in the tile.
 
+## Doorstation Bell (`DoorstationBell`)
+
+Ringtone muted/on, the last rings, motion and the mailbox of the doorstation, as a tile and for the old WebFront.
+
+- **Ringtone** *Muted* / *On*: sends `set_target` to `doorstation/sip/cmd` (muted = the bell rings without a call, on = your call target). With the feedback variable the switch shows what the doorstation confirmed.
+- **Ring history**: the last rings (default 3) from the module's own record, *muted* when the ringtone was muted.
+- **Motion** and **Last motion**, optionally a script on motion (e.g. to switch on the door light).
+- **Mailbox** *Empty* / *Mail* / *Newspaper*: the mail flap sets *Mail*, a flap that stays open (newspaper stuck in it) *Newspaper*, opening the mailbox door empties it. Flap changes up to 5 s after the door moved are ignored (the door moves the flap). Any operation in WebFront or tile empties it by hand. After the notification delay the notification script runs if the mailbox is not empty.
+
+### Requirements
+
+- IP-Symcon 9.0 or newer
+- MQTT client variables of the doorstation (a single field such as `state`, or the full JSON)
+
+### Configuration
+
+| Field | Content |
+|---|---|
+| Bell variable | a variable of `doorstation/event/ring` (e.g. `source` or `ts`); every update is a ring. Not `gpio/input/bell`, it also reports the release |
+| SIP command variable | `doorstation/sip/cmd` (string) |
+| Call target | e.g. `**701` (digits, `*` and `#`, up to 20 characters, as the doorstation accepts), sent for *On* and once after the first valid configuration |
+| Call target feedback | `target` of `doorstation/sip/target` (optional) |
+| Motion variable | `state` of `doorstation/gpio/input/motion` (optional) |
+| Mail flap / Mailbox door | `state` of `doorstation/gpio/input/mail_flap` and `mail_door` (optional, only together) |
+| Script to run on ring / on motion | optional |
+| Notification script | optional, mailbox |
+| Notification delay | 10 to 600 s (default 60) |
+| Entries in the ring history | 1 to 10 (default 3) |
+
+Values are read tolerantly: `open`/`closed`, `motion`/`idle`, `true`/`false`, `1`/`0` or JSON with `state`. Only real changes count, a state delivered again does nothing.
+
+### Script parameters
+
+| Script | `$_IPS` |
+|---|---|
+| on ring | `TS` (Unix time), `MUTED` (bool) |
+| on motion | `TS` |
+| notification | `STATE` (1 mail, 2 newspaper), `TEXT` (*Mail* / *Newspaper*, translated), `TS` |
+
+```php
+<?php
+// notification script, e.g. a push message
+$text = date('d.m.Y - H:i', $_IPS['TS']) . ' - ' . $_IPS['TEXT'];
+// IPS_RunScriptEx(12345 /* push */, ['event' => 'Info', 'description' => $text]);
+```
+
+### Old WebFront
+
+Below the instance, in this order: *Ringtone*, *Rings* (HTML box), *Motion*, *Last motion*, *Mailbox*. You can link *Ringtone* and *Mailbox* to other places (e.g. a group "Front door").
+
 ## Development
 
 ```bash
 ../tools/php/php tests/run.php
 ```
 
-Tests run against a small Symcon stub (`tests/stubs.php`). Tile preview: `../tools/php/php -S 127.0.0.1:8765`, then open `http://127.0.0.1:8765/tests/tile-preview.html`.
+Tests run against a small Symcon stub (`tests/stubs.php`). Tile preview: `../tools/php/php -S 127.0.0.1:8765`, then open `http://127.0.0.1:8765/tests/tile-preview.html` (access) or `tests/tile-preview-bell.html` (bell).
 
 ## License
 

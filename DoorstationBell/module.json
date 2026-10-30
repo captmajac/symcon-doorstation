@@ -1,0 +1,13 @@
+{
+    "id": "{E740A45A-F30C-4857-993F-9DD9E92E2DAF}",
+    "name": "DoorstationBell",
+    "type": 3,
+    "vendor": "Doorstation",
+    "aliases": [
+        "Doorstation Bell"
+    ],
+    "parentRequirements": [],
+    "childRequirements": [],
+    "implemented": [],
+    "prefix": "DSB"
+}

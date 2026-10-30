@@ -5,10 +5,18 @@
 
 date_default_timezone_set('Europe/Berlin');
 require_once __DIR__ . '/stubs.php';
-foreach (glob(__DIR__ . '/../DoorstationAccess/libs/*.php') as $lib) {
+foreach (glob(__DIR__ . '/../libs/*.php') as $lib) {
     require_once $lib;
 }
-require_once __DIR__ . '/../DoorstationAccess/module.php';
+// modules of the library; a module folder that does not exist yet is skipped
+foreach (['DoorstationAccess', 'DoorstationBell'] as $module) {
+    foreach (glob(__DIR__ . "/../$module/libs/*.php") as $lib) {
+        require_once $lib;
+    }
+    if (is_file(__DIR__ . "/../$module/module.php")) {
+        require_once __DIR__ . "/../$module/module.php";
+    }
+}
 require_once __DIR__ . '/helpers.php';
 
 $tests = [];

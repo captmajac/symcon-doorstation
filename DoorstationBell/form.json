@@ -1,0 +1,97 @@
+{
+    "elements": [
+        {
+            "type": "SelectVariable",
+            "name": "RingVariable",
+            "caption": "Bell variable (doorstation/event/ring)"
+        },
+        {
+            "type": "SelectVariable",
+            "name": "CommandVariable",
+            "caption": "SIP command variable (doorstation/sip/cmd)"
+        },
+        {
+            "type": "ValidationTextBox",
+            "name": "CallTarget",
+            "caption": "Call target (e.g. **701)"
+        },
+        {
+            "type": "SelectVariable",
+            "name": "TargetVariable",
+            "caption": "Call target feedback (doorstation/sip/target, optional)"
+        },
+        {
+            "type": "SelectVariable",
+            "name": "MotionVariable",
+            "caption": "Motion variable (doorstation/gpio/input/motion, optional)"
+        },
+        {
+            "type": "SelectVariable",
+            "name": "MailFlapVariable",
+            "caption": "Mail flap (doorstation/gpio/input/mail_flap, optional)"
+        },
+        {
+            "type": "SelectVariable",
+            "name": "MailDoorVariable",
+            "caption": "Mailbox door (doorstation/gpio/input/mail_door, optional)"
+        },
+        {
+            "type": "SelectScript",
+            "name": "RingScript",
+            "caption": "Script to run on ring (optional)"
+        },
+        {
+            "type": "SelectScript",
+            "name": "MotionScript",
+            "caption": "Script to run on motion (optional)"
+        },
+        {
+            "type": "SelectScript",
+            "name": "NotifyScript",
+            "caption": "Notification script (mailbox, optional)"
+        },
+        {
+            "type": "NumberSpinner",
+            "name": "NotifyDelay",
+            "caption": "Notification delay",
+            "suffix": "s",
+            "minimum": 10,
+            "maximum": 600
+        },
+        {
+            "type": "NumberSpinner",
+            "name": "HistoryLength",
+            "caption": "Entries in the ring history",
+            "minimum": 1,
+            "maximum": 10
+        }
+    ],
+    "actions": [],
+    "status": [
+        {
+            "code": 201,
+            "icon": "error",
+            "caption": "Bell variable, command variable or call target missing or invalid"
+        },
+        {
+            "code": 202,
+            "icon": "error",
+            "caption": "Selected script not found"
+        },
+        {
+            "code": 203,
+            "icon": "error",
+            "caption": "Command variable is not a string"
+        },
+        {
+            "code": 204,
+            "icon": "error",
+            "caption": "Mail flap and mailbox door must be selected together"
+        },
+        {
+            "code": 205,
+            "icon": "error",
+            "caption": "Selected variable not found"
+        }
+    ]
+}

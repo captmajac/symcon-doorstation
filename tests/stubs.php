@@ -17,6 +17,8 @@ class TestRegistry
     public static array $scriptRuns = []; // [scriptID, params]
     public static bool $semaphoreFree = true;
     public static array $profiles = [];
+    public static array $requests = [];   // [VariableID, value] of RequestAction
+    public static bool $requestFails = false;
     public static array $parented = [];   // event ID => IPS_GetEvent array at the moment of IPS_SetParent   // name => ['type', 'icon', 'associations' => [value => [name, icon, color]]]
 
     public static function reset(): void
@@ -34,6 +36,8 @@ class TestRegistry
         self::$semaphoreFree = true;
         self::$profiles = [];
         self::$parented = [];
+        self::$requests = [];
+        self::$requestFails = false;
     }
 }
 
@@ -74,6 +78,13 @@ class IPSModule
 
     protected function RegisterPropertyInteger($Name, $Default) { $this->properties[$Name] = $Default; }
     protected function ReadPropertyInteger($Name) { return (int) $this->properties[$Name]; }
+    protected function RegisterPropertyString($Name, $Default) { $this->properties[$Name] = $Default; }
+    protected function ReadPropertyString($Name) { return (string) $this->properties[$Name]; }
+    protected function RegisterAttributeInteger($Name, $Default) { $this->attributes[$Name] ??= $Default; }
+    protected function ReadAttributeInteger($Name) { return (int) $this->attributes[$Name]; }
+    protected function WriteAttributeInteger($Name, $Value) { $this->attributes[$Name] = $Value; }
+    public array $actions = [];     // idents with EnableAction
+    protected function EnableAction($Ident) { $this->actions[] = $Ident; }
     protected function RegisterAttributeString($Name, $Default) { $this->attributes[$Name] ??= $Default; }
     protected function ReadAttributeString($Name) { return (string) $this->attributes[$Name]; }
     protected function WriteAttributeString($Name, $Value) { $this->attributes[$Name] = $Value; }
@@ -120,12 +131,13 @@ class IPSModule
         } elseif (!isset($this->variables[$Ident])) {
             $id = TestRegistry::$nextID++;
             $this->variables[$Ident] = $id;
-            TestRegistry::$values[$id] = $Type === 1 ? 0 : '';
+            TestRegistry::$values[$id] = [false, 0, 0.0, ''][$Type];
             TestRegistry::$objects[$id] = ['parent' => $this->InstanceID, 'ident' => $Ident, 'name' => $Name, 'type' => 2];
         }
         return true;
     }
     protected function GetIDForIdent($Ident) { return $this->variables[$Ident] ?? false; }
+    protected function GetValue($Ident) { return TestRegistry::$values[$this->variables[$Ident]]; }
     protected function SetValue($Ident, $Value) { TestRegistry::$values[$this->variables[$Ident]] = $Value; return true; }
 
     protected function SetStatus($Status) { $this->status[] = $Status; }
@@ -157,6 +169,14 @@ function IPS_GetVariable($ID)
 function IPS_ScriptExists($ID) { return in_array($ID, TestRegistry::$scripts, true); }
 function GetValue($ID) { return TestRegistry::$values[$ID]; }
 
+function RequestAction($VariableID, $Value)
+{
+    if (TestRegistry::$requestFails) {
+        return false;
+    }
+    TestRegistry::$requests[] = [$VariableID, $Value];
+    return true;
+}
 function IPS_RunScriptEx($ID, $Parameters) { TestRegistry::$scriptRuns[] = [$ID, $Parameters]; return true; }
 function IPS_SemaphoreEnter($Name, $Milliseconds) { return TestRegistry::$semaphoreFree; }
 function IPS_SemaphoreLeave($Name) { return true; }

@@ -2,9 +2,16 @@
 
 // Symcon best practice and language rules (as in IPSTuya)
 
-function moduleFiles(): array
+const MODULES = ['DoorstationAccess' => 'DSA', 'DoorstationBell' => 'DSB'];
+
+// PHP files of one module, or of all modules and the shared libs
+function moduleFiles(?string $module = null): array
 {
-    return array_merge(glob(__DIR__ . '/../DoorstationAccess/*.php'), glob(__DIR__ . '/../DoorstationAccess/libs/*.php'));
+    $files = $module === null ? glob(__DIR__ . '/../libs/*.php') : [];
+    foreach ($module === null ? array_keys(MODULES) : [$module] as $m) {
+        $files = array_merge($files, glob(__DIR__ . "/../$m/*.php"), glob(__DIR__ . "/../$m/libs/*.php"));
+    }
+    return $files;
 }
 
 $tests['Convention: no IPS_LogMessage, use $this->LogMessage'] = function () {
@@ -13,23 +20,28 @@ $tests['Convention: no IPS_LogMessage, use $this->LogMessage'] = function () {
     }
 };
 
-$tests['Convention: module does not configure itself'] = function () {
-    $src = file_get_contents(__DIR__ . '/../DoorstationAccess/module.php');
-    foreach (['IPS_SetProperty', 'IPS_SetConfiguration', 'IPS_ApplyChanges'] as $fn) {
-        check(!str_contains($src, $fn), "uses $fn");
+$tests['Convention: modules do not configure themselves'] = function () {
+    foreach (array_keys(MODULES) as $module) {
+        $src = file_get_contents(__DIR__ . "/../$module/module.php");
+        foreach (['IPS_SetProperty', 'IPS_SetConfiguration', 'IPS_ApplyChanges'] as $fn) {
+            check(!str_contains($src, $fn), "$module uses $fn");
+        }
     }
 };
 
 $tests['Convention: only the needed public functions'] = function () {
     $names = ['Create', 'ApplyChanges', 'MessageSink', 'RequestAction', 'GetConfigurationForm', 'GetVisualizationTile'];
-    $public = [];
-    foreach ((new ReflectionClass(DoorstationAccess::class))->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
-        if ($method->class === DoorstationAccess::class) {
-            $public[] = $method->name;
+    sort($names);
+    foreach (array_keys(MODULES) as $module) {
+        $public = [];
+        foreach ((new ReflectionClass($module))->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
+            if ($method->class === $module) {
+                $public[] = $method->name;
+            }
         }
+        sort($public);
+        check($public === $names, "$module: " . implode(', ', $public));
     }
-    sort($public); sort($names);
-    check($public === $names, implode(', ', $public));
 };
 
 // all translatable texts of a form (caption, label)
@@ -47,40 +59,55 @@ function formStrings($node): array
     return $out;
 }
 
-function codeStrings(): array
+function codeStrings(string $module): array
 {
-    preg_match_all('/->Translate\("((?:[^"\\\\]|\\\\.)*)"\)/', implode("\n", array_map('file_get_contents', moduleFiles())), $m);
+    preg_match_all('/->Translate\("((?:[^"\\\\]|\\\\.)*)"\)/', implode("\n", array_map('file_get_contents', moduleFiles($module))), $m);
     return $m[1];
 }
 
-function tileStrings(): array
+function tileStrings(string $module): array
 {
-    $file = __DIR__ . '/../DoorstationAccess/module.html';
+    $file = __DIR__ . "/../$module/module.html";
     preg_match_all("/translate\\('((?:[^'\\\\]|\\\\.)*)'\\)/", is_file($file) ? file_get_contents($file) : '', $m);
     return $m[1];
 }
 
-function localeDe(): array
+function localeDe(string $module): array
 {
-    return json_decode(file_get_contents(__DIR__ . '/../DoorstationAccess/locale.json'), true)['translations']['de'] ?? [];
+    return json_decode(file_get_contents(__DIR__ . "/../$module/locale.json"), true)['translations']['de'] ?? [];
+}
+
+// all texts of form, code (module and shared libs) and tile
+function moduleStrings(string $module): array
+{
+    $form = json_decode(file_get_contents(__DIR__ . "/../$module/form.json"), true);
+    check(is_array($form), "$module: form.json invalid");
+    preg_match_all('/->Translate\("((?:[^"\\\\]|\\\\.)*)"\)/', implode("\n", array_map('file_get_contents', glob(__DIR__ . '/../libs/*.php'))), $shared);
+    return array_unique(array_merge(formStrings($form), codeStrings($module), tileStrings($module), $shared[1]));
 }
 
 $tests['Language: all texts from form and code are translated'] = function () {
-    $form = json_decode(file_get_contents(__DIR__ . '/../DoorstationAccess/form.json'), true);
-    check(is_array($form), 'form.json invalid');
-    $missing = array_diff(array_unique(array_merge(formStrings($form), codeStrings(), tileStrings())), array_keys(localeDe()));
-    check($missing === [], implode(' | ', $missing));
+    foreach (array_keys(MODULES) as $module) {
+        $missing = array_diff(moduleStrings($module), array_keys(localeDe($module)));
+        check($missing === [], "$module: " . implode(' | ', $missing));
+    }
 };
 
 $tests['Language: no unused translations'] = function () {
-    $form = json_decode(file_get_contents(__DIR__ . '/../DoorstationAccess/form.json'), true);
-    $unused = array_diff(array_keys(localeDe()), array_merge(formStrings($form), codeStrings(), tileStrings()));
-    check($unused === [], implode(' | ', $unused));
+    foreach (array_keys(MODULES) as $module) {
+        $unused = array_diff(array_keys(localeDe($module)), moduleStrings($module));
+        check($unused === [], "$module: " . implode(' | ', $unused));
+    }
 };
 
 $tests['Language: library.json and module.json are valid'] = function () {
     $lib = json_decode(file_get_contents(__DIR__ . '/../library.json'), true);
-    $mod = json_decode(file_get_contents(__DIR__ . '/../DoorstationAccess/module.json'), true);
     check(($lib['compatibility']['version'] ?? '') === '9.0', 'library compatibility');
-    check(($mod['prefix'] ?? '') === 'DSA' && ($mod['type'] ?? 0) === 3, 'module.json');
+    $ids = [];
+    foreach (MODULES as $module => $prefix) {
+        $mod = json_decode(file_get_contents(__DIR__ . "/../$module/module.json"), true);
+        check(($mod['prefix'] ?? '') === $prefix && ($mod['type'] ?? 0) === 3 && ($mod['name'] ?? '') === $module, "$module: module.json");
+        $ids[] = $mod['id'];
+    }
+    check(count(array_unique($ids)) === count($ids), 'module IDs not unique');
 };
