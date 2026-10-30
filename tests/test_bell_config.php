@@ -67,3 +67,17 @@ $tests['Bell config: selected variable deleted → error status'] = function () 
     $m->MessageSink(TestRegistry::$now, 400, VM_DELETE, []);
     check($m->currentStatus() === 201, (string) $m->currentStatus());
 };
+
+$tests['Bell config: form has each script next to its sensor'] = function () {
+    $rows = [];
+    foreach (json_decode(file_get_contents(__DIR__ . '/../DoorstationBell/form.json'), true)['elements'] as $element) {
+        $rows[] = array_column($element['type'] === 'RowLayout' ? $element['items'] : [$element], 'name');
+    }
+    check($rows === [
+        ['RingVariable', 'RingScript', 'HistoryLength'],
+        ['CommandVariable', 'CallTarget', 'TargetVariable'],
+        ['MotionVariable', 'MotionScript'],
+        ['MailFlapVariable', 'MailDoorVariable'],
+        ['NotifyScript', 'NotifyDelay'],
+    ], json_encode($rows));
+};
