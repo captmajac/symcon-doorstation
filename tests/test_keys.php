@@ -52,7 +52,7 @@ $tests['Keys: CreateKey for ID outside the last 5 reads is refused'] = function 
     $m = makeAccess();
     readsOf($m, ['11111111', '22222222', '33333333', '44444444', '55555555', 'c0ffee42']);
     $m->RequestAction('CreateKey', json_encode(['id' => 'c0ffee42', 'name' => 'Card']));
-    check(IPS_GetObjectIDByIdent('key_c0ffee42', 2) === false, 'created');
+    check(@IPS_GetObjectIDByIdent('key_c0ffee42', 2) === false, 'created');
     check(lastError($m) === 'Key not in recent reads', (string) lastError($m));
 };
 

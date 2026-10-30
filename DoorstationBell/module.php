@@ -77,7 +77,8 @@ class DoorstationBell extends IPSModule
 
         $motion = $this->ReadPropertyInteger('MotionVariable') > 0;
         $mailbox = $this->hasMailbox();
-        $created = $this->GetIDForIdent('Ringtone') === false;
+        // GetIDForIdent warns for a missing ident, Symcon then refuses to create the instance
+        $created = @IPS_GetObjectIDByIdent('Ringtone', $this->InstanceID) === false;
         $this->MaintainVariable('Ringtone', $this->Translate("Ringtone"), 0, $this->ringtonePresentation(), self::POS_RINGTONE, true);
         if ($created) {
             // the doorstation starts with its default call target (sip.yaml default_target)

@@ -4,6 +4,13 @@
 // Tests the module against the Symcon stub, without a Symcon server.
 
 date_default_timezone_set('Europe/Berlin');
+// Symcon shows warnings and notices of a module as errors (e.g. instance cannot be created); unless suppressed with @
+set_error_handler(function (int $errno, string $errstr, string $file, int $line) {
+    if (!(error_reporting() & $errno)) {
+        return false;
+    }
+    throw new ErrorException($errstr, 0, $errno, $file, $line);
+});
 require_once __DIR__ . '/stubs.php';
 foreach (glob(__DIR__ . '/../libs/*.php') as $lib) {
     require_once $lib;

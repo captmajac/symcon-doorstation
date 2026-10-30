@@ -12,7 +12,7 @@ $tests['Stub: create event, find by ident, read schedule'] = function () {
     IPS_SetEventScheduleGroupPoint($id, 0, 0, 0, 0, 0, 1);
     IPS_SetEventActive($id, true);
     check(IPS_GetObjectIDByIdent('key_ab12cd34', 2) === $id, 'ident not found');
-    check(IPS_GetObjectIDByIdent('key_ab12cd34', 3) === false, 'found under other parent');
+    check(@IPS_GetObjectIDByIdent('key_ab12cd34', 3) === false, 'found under other parent');
     check(IPS_GetChildrenIDs(2) === [$id], 'children');
     check(IPS_GetObject($id)['ObjectName'] === 'Card' && IPS_GetObject($id)['ObjectType'] === 4, 'object');
     $e = IPS_GetEvent($id);

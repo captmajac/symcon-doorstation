@@ -136,7 +136,14 @@ class IPSModule
         }
         return true;
     }
-    protected function GetIDForIdent($Ident) { return $this->variables[$Ident] ?? false; }
+    protected function GetIDForIdent($Ident)
+    {
+        if (!isset($this->variables[$Ident])) {
+            trigger_error("Objekt mit Ident $Ident wurde nicht gefunden", E_USER_WARNING);  // as Symcon does
+            return false;
+        }
+        return $this->variables[$Ident];
+    }
     protected function GetValue($Ident) { return TestRegistry::$values[$this->variables[$Ident]]; }
     protected function SetValue($Ident, $Value) { TestRegistry::$values[$this->variables[$Ident]] = $Value; return true; }
 
@@ -189,7 +196,8 @@ function IPS_GetObjectIDByIdent($Ident, $ParentID)
             return $id;
         }
     }
-    return false;  // Symcon also raises a warning here
+    trigger_error("Objekt mit Ident $Ident wurde nicht gefunden", E_USER_WARNING);  // as Symcon does
+    return false;
 }
 function IPS_GetChildrenIDs($ID)
 {
