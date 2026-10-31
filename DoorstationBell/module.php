@@ -309,7 +309,7 @@ class DoorstationBell extends IPSModule
     // Call target reported by the doorstation: the switch shows it, a matching report confirms a pending switch
     private function handleTarget($value): void
     {
-        $muted = StateReader::target($value) === null;
+        $muted = StateReader::muted($value);
         $this->SetValue('Ringtone', !$muted);
         $pending = json_decode($this->ReadAttributeString('Pending'), true);
         if (is_array($pending) && $pending['muted'] === $muted) {
@@ -325,10 +325,14 @@ class DoorstationBell extends IPSModule
         $callTarget = trim($this->ReadPropertyString('CallTarget'));
         $feedback = $this->ReadPropertyInteger('TargetVariable');
         if ($feedback > 0) {
-            $reported = StateReader::target(GetValue($feedback));
-            $this->SetValue('Ringtone', $reported !== null);
-            if ($reported !== null && $reported !== $callTarget) {
-                $this->setMuted(false);
+            $value = GetValue($feedback);
+            $muted = StateReader::muted($value);
+            $this->SetValue('Ringtone', !$muted);
+            // the boolean "muted" does not tell the call target: compare with the last one sent
+            $reported = is_bool($value) ? $this->ReadAttributeString('SentTarget') : StateReader::target($value);
+            // sent without waiting for confirmation: an unchanged target is not reported again by the doorstation
+            if (!$muted && $reported !== $callTarget) {
+                $this->sendTarget(false);
             }
             return;
         }

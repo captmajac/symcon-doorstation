@@ -4,7 +4,6 @@
             "Bell variable (doorstation/event/ring)": "Klingel-Variable (doorstation/event/ring)",
             "SIP command variable (doorstation/sip/cmd)": "Befehlsvariable SIP (doorstation/sip/cmd)",
             "Call target (e.g. **701)": "Anrufziel (z. B. **701)",
-            "Call target feedback (doorstation/sip/target, optional)": "Anrufziel-Rückmeldung (doorstation/sip/target, optional)",
             "Motion variable (doorstation/gpio/input/motion, optional)": "Bewegungs-Variable (doorstation/gpio/input/motion, optional)",
             "Mail flap (doorstation/gpio/input/mail_flap, optional)": "Briefklappe (doorstation/gpio/input/mail_flap, optional)",
             "Mailbox door (doorstation/gpio/input/mail_door, optional)": "Kastentür (doorstation/gpio/input/mail_door, optional)",
@@ -38,7 +37,8 @@
             "Command could not be sent to the doorstation": "Befehl konnte nicht an die Türstation gesendet werden",
             "Command could not be sent: %s": "Befehl konnte nicht gesendet werden: %s",
             "Bell variable, command variable or call target missing or invalid": "Klingel-Variable, Befehlsvariable oder Anrufziel fehlt oder ist ungültig",
-            "Logged values": "Geloggte Werte"
+            "Logged values": "Geloggte Werte",
+            "Call target feedback (muted of doorstation/sip/target, optional)": "Anrufziel-Rückmeldung (muted von doorstation/sip/target, optional)"
         }
     }
 }

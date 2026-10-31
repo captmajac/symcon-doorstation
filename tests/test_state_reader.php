@@ -35,3 +35,10 @@ $tests['StateReader: call target number'] = function () {
     check(StateReader::target('{"target":"**701"}') === '**701', 'JSON');
     check(StateReader::target(' **701 ') === '**701', 'text');
 };
+
+$tests['StateReader: muted from boolean, JSON with muted, or the call target'] = function () {
+    check(StateReader::muted(true) === true && StateReader::muted(false) === false, 'boolean');
+    check(StateReader::muted('{"ts":"x","target":null,"muted":true}') === true, 'JSON muted');
+    check(StateReader::muted('{"ts":"x","target":"**701","muted":false}') === false, 'JSON on');
+    check(StateReader::muted('**701') === false && StateReader::muted('') === true && StateReader::muted('null') === true, 'target text');
+};

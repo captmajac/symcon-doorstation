@@ -26,6 +26,22 @@ class StateReader
         return $text === strtolower($on) ? true : ($text === strtolower($off) ? false : null);
     }
 
+    // Muted or not from the feedback of doorstation/sip/target: the boolean "muted"
+    // (survives MQTT clients that split the JSON and drop null), JSON with "muted", or the call target
+    public static function muted($value): bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+        if (is_string($value)) {
+            $data = json_decode($value, true);
+            if (is_array($data) && is_bool($data['muted'] ?? null)) {
+                return $data['muted'];
+            }
+        }
+        return self::target($value) === null;
+    }
+
     // Call target, null = muted
     public static function target($value): ?string
     {

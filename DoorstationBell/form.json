@@ -38,7 +38,7 @@
                 {
                     "type": "SelectVariable",
                     "name": "TargetVariable",
-                    "caption": "Call target feedback (doorstation/sip/target, optional)"
+                    "caption": "Call target feedback (muted of doorstation/sip/target, optional)"
                 }
             ]
         },

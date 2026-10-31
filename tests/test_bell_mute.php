@@ -113,3 +113,41 @@ $tests['Bell mute: invalid value from the tile → error, no command'] = functio
     $m->RequestAction('SetMuted', 'kaputt');
     check(lastError($m) !== null && TestRegistry::$requests === [], json_encode($m->visu));
 };
+
+// feedback "muted" of doorstation/sip/target as boolean variable 406 (split JSON)
+function mutedBell(bool $muted = false): TestBell
+{
+    TestRegistry::$variables[406] = ['VariableType' => 0, 'VariableUpdated' => 0];
+    TestRegistry::$values[406] = $muted;
+    return makeBell(['TargetVariable' => 406]);
+}
+
+$tests['Bell mute: boolean muted feedback confirms muting'] = function () {
+    $m = mutedBell();
+    TestRegistry::$requests = [];
+    $m->RequestAction('SetMuted', 'true');
+    check(TestRegistry::$requests === [[401, MUTE_CMD]] && lastPayload($m)['pending'] === true, json_encode(lastPayload($m)));
+    update($m, 406, true);
+    check($m->value('Ringtone') === false && lastPayload($m)['pending'] === false, json_encode(lastPayload($m)));
+    $m->RequestAction('SetMuted', 'false');
+    update($m, 406, false);
+    check($m->value('Ringtone') === true && lastPayload($m)['pending'] === false, json_encode(lastPayload($m)));
+};
+
+$tests['Bell mute: boolean muted feedback on apply'] = function () {
+    $m = mutedBell(true);
+    check($m->value('Ringtone') === false && TestRegistry::$requests === [], 'muted: ' . json_encode(TestRegistry::$requests));
+    TestRegistry::reset();
+    $m = mutedBell();
+    check(TestRegistry::$requests === [[401, ON_CMD]], 'first configuration sends the call target: ' . json_encode(TestRegistry::$requests));
+    $m->ApplyChanges();
+    check(count(TestRegistry::$requests) === 1, 'sent again');
+    $m->properties['CallTarget'] = '**702';
+    $m->ApplyChanges();
+    check(TestRegistry::$requests[1] === [401, '{"action":"set_target","target":"**702"}'], json_encode(TestRegistry::$requests));
+};
+
+$tests['Bell mute: call target sync on apply does not wait for confirmation'] = function () {
+    $m = mutedBell();
+    check(TestRegistry::$requests === [[401, ON_CMD]] && $m->timers['ConfirmTimeout']['interval'] === 0 && lastPayload($m)['pending'] === false, json_encode($m->timers['ConfirmTimeout']));
+};

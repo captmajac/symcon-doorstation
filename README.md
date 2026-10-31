@@ -81,7 +81,7 @@ Ringtone muted/on, the last rings, motion and the mailbox of the doorstation, as
 | Bell variable | a variable of `doorstation/event/ring` (e.g. `source` or `ts`); every update is a ring. Not `gpio/input/bell`, it also reports the release |
 | SIP command variable | `doorstation/sip/cmd` (string) |
 | Call target | e.g. `**701` (digits, `*` and `#`, up to 20 characters, as the doorstation accepts), sent for *On* and once after the first valid configuration |
-| Call target feedback | `target` of `doorstation/sip/target` (optional) |
+| Call target feedback | `muted` of `doorstation/sip/target` (optional; recommended when the MQTT client splits the JSON into variables, a split `target` may not take `null`). `target` or a variable with the full JSON work as well |
 | Motion variable | `state` of `doorstation/gpio/input/motion` (optional) |
 | Mail flap / Mailbox door | `state` of `doorstation/gpio/input/mail_flap` and `mail_door` (optional, only together) |
 | Script to run on ring / on motion | optional |
