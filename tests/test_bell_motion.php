@@ -50,3 +50,8 @@ $tests['Bell motion: without script only the variables'] = function () {
     update($m, 403, 'motion');
     check($m->value('Motion') === true && TestRegistry::$scriptRuns === [], 'script ran');
 };
+
+$tests['Bell motion: no motion yet → last_motion null'] = function () {
+    $m = motionBell();
+    check(lastPayload($m)['motion'] === false && lastPayload($m)['last_motion'] === null, json_encode(lastPayload($m)));
+};

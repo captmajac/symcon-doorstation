@@ -22,6 +22,8 @@ class DoorstationBell extends IPSModule
     const POS_MAILBOX = 50;
     const VARIABLES = ['RingVariable', 'CommandVariable', 'TargetVariable', 'MotionVariable', 'MailFlapVariable', 'MailDoorVariable'];
     const SCRIPTS = ['RingScript', 'MotionScript', 'NotifyScript'];
+    const ORANGE = 0xFB8C00;  // hint for mail and newspaper; same palette as the fixed colors of the access module
+    const RING_GAP_S = 2;  // the doorstation sends rings at least this far apart (gpio min_interval_s of the bell)
     const CONFIRM_S = 10;  // wait this long for the doorstation to confirm muted/on
 
     public function Create()
@@ -150,6 +152,7 @@ class DoorstationBell extends IPSModule
                 }
                 if ($SenderID === $this->ReadPropertyInteger('RingVariable')) {
                     // every update is a ring, the value may stay the same (e.g. source "bell")
+                    $this->SendDebug('Ring', json_encode($Data[0]), 0);
                     $this->handleRing();
                 } elseif ($SenderID === $this->ReadPropertyInteger('TargetVariable')) {
                     $this->handleTarget($Data[0]);
@@ -342,6 +345,12 @@ class DoorstationBell extends IPSModule
     {
         $muted = !$this->GetValue('Ringtone');
         $log = new RingLog($this->ReadAttributeString('Rings'));
+        $last = $log->latest(1)[0]['time'] ?? 0;
+        if ($this->now() - $last < self::RING_GAP_S) {
+            // a second update of the same ring (e.g. a MQTT client updating the variable twice)
+            $this->SendDebug('Ring', 'same ring, ignored', 0);
+            return;
+        }
         $log->add($this->now(), $muted);
         $this->WriteAttributeString('Rings', $log->toJson());
         $this->runScript('RingScript', ['TS' => $this->now(), 'MUTED' => $muted]);
@@ -367,8 +376,11 @@ class DoorstationBell extends IPSModule
             'pending'     => $this->ReadAttributeString('Pending') !== '',
             'motion'      => $motion ? (bool) $this->GetValue('Motion') : null,
             'last_motion' => $lastMotion > 0 ? $lastMotion : null,
-            'mailbox'     => $this->hasMailbox() ? (int) $this->GetValue('Mailbox') : null,
-            'rings'       => (new RingLog($this->ReadAttributeString('Rings')))->latest(max(1, min(10, $this->ReadPropertyInteger('HistoryLength')))),
+            'mailbox'    => $this->hasMailbox() ? (int) $this->GetValue('Mailbox') : null,
+            'rings'      => (new RingLog($this->ReadAttributeString('Rings')))->latest(max(1, min(10, $this->ReadPropertyInteger('HistoryLength')))),
+            // the tile opens these with openObject: the standard tile shows the logged values
+            'ring_var'   => $this->ReadPropertyInteger('RingVariable'),
+            'motion_var' => $motion ? $this->GetIDForIdent('Motion') : null,
         ];
     }
 
@@ -426,7 +438,7 @@ class DoorstationBell extends IPSModule
         ];
     }
 
-    // Enumeration presentation: empty, mail, newspaper (mail and newspaper highlighted)
+    // Enumeration presentation: empty, mail, newspaper (mail and newspaper orange as a hint)
     private function mailboxPresentation(): array
     {
         return [
@@ -434,8 +446,8 @@ class DoorstationBell extends IPSModule
             'ICON'         => 'envelope',
             'OPTIONS'      => json_encode([
                 self::option(MailboxLogic::EMPTY, $this->Translate("Empty"), -1),
-                self::option(MailboxLogic::MAIL, $this->Translate("Mail"), 0xFDD835),
-                self::option(MailboxLogic::NEWSPAPER, $this->Translate("Newspaper"), 0xFDD835),
+                self::option(MailboxLogic::MAIL, $this->Translate("Mail"), self::ORANGE),
+                self::option(MailboxLogic::NEWSPAPER, $this->Translate("Newspaper"), self::ORANGE),
             ]),
         ];
     }

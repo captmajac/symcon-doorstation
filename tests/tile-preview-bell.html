@@ -24,7 +24,8 @@
     <button onclick="show({})">Ein, leer</button>
     <button onclick="show({ muted: true, mailbox: 1 })">stumm, Post</button>
     <button onclick="show({ pending: true, mailbox: 2 })">wartet, Zeitung</button>
-    <button onclick="show({ motion: null, last_motion: null, mailbox: null, rings: [] })">nur Klingel</button>
+    <button onclick="show({ motion: true, mailbox: 1 })">Bewegung</button>
+    <button onclick="show({ motion: null, motion_var: null, mailbox: null, rings: [] })">nur Klingel</button>
 </div>
 <div id="tile"></div>
 <div id="log"></div>
@@ -33,12 +34,15 @@
     let de = {};
     window.translate = (text) => de[text] || text;
     window.requestAction = (ident, value) => log('requestAction(' + ident + ', ' + value + ')');
+    window.openObject = (id) => log('openObject(' + id + ')');
     const now = Math.floor(Date.now() / 1000);
     const sample = {
         muted: false,
         pending: false,
         motion: false,
         last_motion: now - 1800,
+        ring_var: 12345,
+        motion_var: 23456,
         mailbox: 0,
         rings: [
             { time: now - 120, muted: false },

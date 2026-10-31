@@ -2,9 +2,10 @@
 
 // Bell module: rings, ring history, HTML box, midnight
 
+// Ring 3 s after the previous one (the doorstation sends rings at least 2 s apart)
 function ring(DoorstationBell $m, string $value = 'bell'): void
 {
-    TestRegistry::$now++;
+    TestRegistry::$now += 3;
     update($m, 400, $value);
 }
 
@@ -15,7 +16,7 @@ $tests['Bell ring: same value twice → two entries, script twice'] = function (
     $rings = lastPayload($m)['rings'];
     check(count($rings) === 2 && $rings[0] === ['time' => TestRegistry::$now, 'muted' => false], json_encode($rings));
     check(TestRegistry::$scriptRuns === [
-        [500, ['TS' => TestRegistry::$now - 1, 'MUTED' => false]],
+        [500, ['TS' => TestRegistry::$now - 3, 'MUTED' => false]],
         [500, ['TS' => TestRegistry::$now, 'MUTED' => false]],
     ], json_encode(TestRegistry::$scriptRuns));
 };
@@ -61,7 +62,7 @@ $tests['Bell ring: payload without motion and mailbox'] = function () {
     $m = makeBell();
     ring($m);
     $p = lastPayload($m);
-    check(array_keys($p) === ['muted', 'pending', 'motion', 'last_motion', 'mailbox', 'rings'], json_encode(array_keys($p)));
+    check(array_keys($p) === ['muted', 'pending', 'motion', 'last_motion', 'mailbox', 'rings', 'ring_var', 'motion_var'], json_encode(array_keys($p)));
     check($p['motion'] === null && $p['last_motion'] === null && $p['mailbox'] === null && $p['muted'] === false && $p['pending'] === false, json_encode($p));
 };
 
@@ -84,4 +85,27 @@ $tests['Bell ring: no evaluation in error status'] = function () {
     $m = makeBell(['CallTarget' => '']);
     ring($m);
     check(lastPayload($m) === [] && TestRegistry::$scriptRuns === [], json_encode($m->visu));
+};
+
+$tests['Bell ring: second update within 2 s is the same ring'] = function () {
+    $m = makeBell(['RingScript' => 500]);
+    ring($m);
+    update($m, 400, 'bell');            // same second
+    TestRegistry::$now += 1;
+    update($m, 400, 'bell');            // 1 s later
+    check(count(lastPayload($m)['rings']) === 1 && count(TestRegistry::$scriptRuns) === 1, json_encode(lastPayload($m)['rings']));
+    TestRegistry::$now += 2;            // 3 s after the first: a new ring
+    update($m, 400, 'bell');
+    check(count(lastPayload($m)['rings']) === 2 && count(TestRegistry::$scriptRuns) === 2, json_encode(lastPayload($m)['rings']));
+};
+
+$tests['Bell ring: payload names the variables for the charts'] = function () {
+    $m = makeBell(['MotionVariable' => 403]);
+    ring($m);
+    $p = lastPayload($m);
+    check($p['ring_var'] === 400 && $p['motion_var'] === $m->variables['Motion'], json_encode($p));
+    TestRegistry::reset();
+    $m = makeBell();
+    ring($m);
+    check(lastPayload($m)['motion_var'] === null, json_encode(lastPayload($m)));
 };

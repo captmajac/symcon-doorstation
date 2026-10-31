@@ -65,8 +65,8 @@ Below the instance, in this order: *Accesses* (HTML box with the last accesses),
 Ringtone muted/on, the last rings, motion and the mailbox of the doorstation, as a tile and for the old WebFront.
 
 - **Ringtone** *Muted* / *On*: sends `set_target` to `doorstation/sip/cmd` (muted = the bell rings without a call, on = your call target). With the feedback variable the switch shows what the doorstation confirmed.
-- **Ring history**: the last rings (default 3) from the module's own record, *muted* when the ringtone was muted.
-- **Motion** and **Last motion**, optionally a script on motion (e.g. to switch on the door light).
+- **Ring history**: the last rings (default 3) from the module's own record, *muted* when the ringtone was muted. Updates of the bell variable less than 2 s apart count as one ring (the doorstation never sends rings closer together). The chart symbol opens the standard tile of the bell variable with its logged values.
+- **Motion** and **Last motion**, optionally a script on motion (e.g. to switch on the door light). In the tile the chart symbol opens the variable *Motion*; enable logging for it to see the history.
 - **Mailbox** *Empty* / *Mail* / *Newspaper*: the mail flap sets *Mail*, a flap that stays open (newspaper stuck in it) *Newspaper*, opening the mailbox door empties it. Flap changes up to 5 s after the door moved are ignored (the door moves the flap). Any operation in WebFront or tile empties it by hand. After the notification delay the notification script runs if the mailbox is not empty.
 
 ### Requirements

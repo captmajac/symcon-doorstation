@@ -34,12 +34,11 @@
             "Unknown value ignored: %s": "Unbekannter Wert ignoriert: %s",
             "Last rings": "Letzte Klingeln",
             "No rings yet": "Noch kein Klingeln",
-            "No motion": "Keine Bewegung",
-            "Bell": "Klingel",
             "Instance is not configured correctly": "Instanz ist nicht richtig eingerichtet",
             "Command could not be sent to the doorstation": "Befehl konnte nicht an die Türstation gesendet werden",
             "Command could not be sent: %s": "Befehl konnte nicht gesendet werden: %s",
-            "Bell variable, command variable or call target missing or invalid": "Klingel-Variable, Befehlsvariable oder Anrufziel fehlt oder ist ungültig"
+            "Bell variable, command variable or call target missing or invalid": "Klingel-Variable, Befehlsvariable oder Anrufziel fehlt oder ist ungültig",
+            "Logged values": "Geloggte Werte"
         }
     }
 }
