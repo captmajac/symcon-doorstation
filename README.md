@@ -1,6 +1,6 @@
 # Doorstation for IP-Symcon
 
-IP-Symcon modules for the [doorstation](https://github.com/captmajac/doorstation). The modules are not connected to MQTT themselves: they refer to the MQTT client variables you already have, so they work with any topic layout.
+IP-Symcon modules for the [Doorstation](https://github.com/captmajac/Doorstation). The modules are not connected to MQTT themselves: they refer to the MQTT client variables you already have, so they work with any topic layout.
 
 ## Doorstation Access (`DoorstationAccess`)
 
